@@ -8,3 +8,7 @@ dist/
 *.db
 *.db-shm
 *.db-wal
+
+# Rust / Tauri build output
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/Cargo.lock
