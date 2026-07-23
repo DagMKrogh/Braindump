@@ -1,11 +1,29 @@
-import { NavLink } from 'react-router-dom'
+import { useMemo } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { FileText, Calendar, Search, Settings, Hash, FolderOpen } from 'lucide-react'
 import { SyncStatusBar } from './SyncStatusBar'
 import { useCollectionsStore } from '../../stores/collectionsStore'
+import { useNotesStore } from '../../stores/notesStore'
 import s from '../../styles/layout.module.css'
 
 export function Sidebar() {
-  const { collections, tags } = useCollectionsStore()
+  const { collections } = useCollectionsStore()
+  const notes = useNotesStore(st => st.notes)
+  const navigate = useNavigate()
+
+  // Derive top tags from loaded notes (by note count, descending)
+  const topTags = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const note of notes) {
+      for (const tag of note.tags) {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1)
+      }
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20)
+      .map(([tag, count]) => ({ tag, count }))
+  }, [notes])
 
   return (
     <aside className={s.sidebar}>
@@ -17,6 +35,10 @@ export function Sidebar() {
         <NavLink to="/notes" className={({ isActive }) => `${s.navItem} ${isActive ? s.active : ''}`}>
           <FileText size={15} />
           Notes
+        </NavLink>
+        <NavLink to="/tags" className={({ isActive }) => `${s.navItem} ${isActive ? s.active : ''}`}>
+          <Hash size={15} />
+          Tags
         </NavLink>
         <NavLink to="/calendar" className={({ isActive }) => `${s.navItem} ${isActive ? s.active : ''}`}>
           <Calendar size={15} />
@@ -45,13 +67,21 @@ export function Sidebar() {
           </>
         )}
 
-        {tags.length > 0 && (
+        {topTags.length > 0 && (
           <>
             <div className={s.sidebarSectionTitle} style={{ marginTop: '0.5rem' }}>Tags</div>
-            {tags.slice(0, 20).map((t) => (
-              <button key={t.id} className={s.navItem}>
-                <Hash size={13} />
-                {t.name}
+            {topTags.map(({ tag, count }) => (
+              <button
+                key={tag}
+                className={s.navItem}
+                onClick={() => navigate(`/tags?tag=${encodeURIComponent(tag)}`)}
+                style={{ justifyContent: 'space-between' }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                  <Hash size={13} />
+                  {tag}
+                </span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>{count}</span>
               </button>
             ))}
           </>
