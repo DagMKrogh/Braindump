@@ -1,0 +1,14 @@
+/Users/dakro/Git/repos/Braindump/apps/desktop/src-tauri/target/release/deps/serde-719dc71de261b91a.d: /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Users/dakro/Git/repos/Braindump/apps/desktop/src-tauri/target/release/build/serde-9f46f3360ac916a7/out/private.rs
+
+/Users/dakro/Git/repos/Braindump/apps/desktop/src-tauri/target/release/deps/libserde-719dc71de261b91a.rlib: /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Users/dakro/Git/repos/Braindump/apps/desktop/src-tauri/target/release/build/serde-9f46f3360ac916a7/out/private.rs
+
+/Users/dakro/Git/repos/Braindump/apps/desktop/src-tauri/target/release/deps/libserde-719dc71de261b91a.rmeta: /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Users/dakro/Git/repos/Braindump/apps/desktop/src-tauri/target/release/build/serde-9f46f3360ac916a7/out/private.rs
+
+/Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs:
+/Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs:
+/Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs:
+/Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs:
+/Users/dakro/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs:
+/Users/dakro/Git/repos/Braindump/apps/desktop/src-tauri/target/release/build/serde-9f46f3360ac916a7/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/dakro/Git/repos/Braindump/apps/desktop/src-tauri/target/release/build/serde-9f46f3360ac916a7/out

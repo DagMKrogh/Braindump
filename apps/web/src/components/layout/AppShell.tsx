@@ -2,19 +2,20 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { SyncStatusBar } from './SyncStatusBar'
 import { useUIStore } from '../../stores/uiStore'
+import s from '../../styles/layout.module.css'
 
 export function AppShell() {
-  const sidebarOpen = useUIStore((s) => s.sidebarOpen)
+  const sidebarOpen = useUIStore((st) => st.sidebarOpen)
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div className={s.appShell}>
       {sidebarOpen && <Sidebar />}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ flex: 1, overflow: 'auto' }}>
+      <div className={s.mainArea}>
+        <div className={s.contentArea}>
           <Outlet />
         </div>
         <SyncStatusBar />
-      </main>
+      </div>
     </div>
   )
 }

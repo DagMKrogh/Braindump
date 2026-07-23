@@ -31,7 +31,8 @@ export const db = new BraindumpDB()
 
 // Notes
 export async function getAllNotes(): Promise<LocalNote[]> {
-  return db.notes.where('deletedAt').equals('').or('deletedAt').equals(null as unknown as string).toArray()
+  const all = await db.notes.toArray()
+  return all.filter((n) => !n.deletedAt).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
 
 export async function getNoteById(id: string): Promise<LocalNote | undefined> {
