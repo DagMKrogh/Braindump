@@ -78,7 +78,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     await db.insert(refreshTokens).values({ userId, tokenHash, expiresAt })
 
-    return reply.send({ accessToken, refreshToken, expiresIn: 3600 })
+    // Redirect to frontend with tokens in hash (consumed by AuthCallbackPage)
+    const userParam = encodeURIComponent(JSON.stringify({ id: userId, email: googleUser.email, name: googleUser.name, avatarUrl: googleUser.picture ?? null }))
+    return reply.redirect(`${config.frontendUrl}/auth/callback#token=${accessToken}&refreshToken=${refreshToken}&user=${userParam}`)
   })
 
   // POST /auth/refresh

@@ -11,12 +11,13 @@ export function AuthCallbackPage() {
     const hash = window.location.hash.slice(1)
     const params = new URLSearchParams(hash)
     const token = params.get('token')
+    const refreshToken = params.get('refreshToken') ?? ''
     const user = params.get('user')
 
     if (token && user) {
       try {
         const parsed = JSON.parse(decodeURIComponent(user))
-        setAuth(parsed, token, '')
+        setAuth(parsed, token, refreshToken)
         syncEngine.start()
         navigate('/notes', { replace: true })
       } catch {

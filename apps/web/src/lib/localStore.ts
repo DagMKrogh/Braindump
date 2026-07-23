@@ -88,3 +88,11 @@ export async function upsertCustomNoteTypes(types: CustomNoteTypeRecord[]): Prom
 export async function getAllCustomNoteTypes(): Promise<CustomNoteTypeRecord[]> {
   return db.customNoteTypes.toArray()
 }
+
+export async function saveCustomNoteType(record: CustomNoteTypeRecord): Promise<void> {
+  await db.customNoteTypes.put(record)
+}
+
+export async function deleteCustomNoteType(id: string): Promise<void> {
+  await db.customNoteTypes.delete(id)
+}

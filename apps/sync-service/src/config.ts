@@ -19,5 +19,6 @@ export const config = {
   googleClientSecret: required('GOOGLE_CLIENT_SECRET'),
   googleCallbackUrl: required('GOOGLE_CALLBACK_URL'),
   allowedOrigin: optional('ALLOWED_ORIGIN', 'http://localhost:5173'),
+  frontendUrl: optional('FRONTEND_URL', 'http://localhost:5173'),
   nodeEnv: optional('NODE_ENV', 'development'),
 } as const
