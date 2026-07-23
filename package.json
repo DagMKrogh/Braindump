@@ -1,0 +1,27 @@
+{
+  "name": "braindump",
+  "private": true,
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @braindump/web dev",
+    "dev:sync": "pnpm --filter @braindump/sync-service dev",
+    "build:web": "pnpm --filter @braindump/web build",
+    "build:sync": "pnpm --filter @braindump/sync-service build",
+    "build:shared": "pnpm --filter @braindump/shared build",
+    "build": "pnpm build:shared && pnpm build:web && pnpm build:sync",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .prettierignore"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.5.0"
+  }
+}

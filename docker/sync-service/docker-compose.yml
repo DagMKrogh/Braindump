@@ -1,0 +1,29 @@
+services:
+  sync-service:
+    build:
+      context: ../..
+      dockerfile: docker/sync-service/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
+      - ALLOWED_ORIGIN=${ALLOWED_ORIGIN}
+      - NODE_ENV=production
+    env_file:
+      - .env
+    networks:
+      - zima-internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  zima-internal:
+    external: true
