@@ -1,5 +1,6 @@
 import type { Note } from './note.js'
 import type { Collection, Tag, Topic } from './collection.js'
+import type { CustomNoteTypeRecord } from './customNoteType.js'
 
 export type SyncMode = 'local-only' | 'synced' | 'offline'
 
@@ -24,6 +25,7 @@ export interface DeltaResponse {
   collections: Collection[]
   topics: Topic[]
   tags: Tag[]
+  customNoteTypes: CustomNoteTypeRecord[]
   cursor: string // ISO 8601 timestamp
 }
 

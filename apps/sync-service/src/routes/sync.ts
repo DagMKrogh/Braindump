@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { eq, and, gt, isNull } from 'drizzle-orm'
 import { db } from '../plugins/db.js'
-import { notes, collections, topics } from '../db/schema.js'
+import { notes, collections, topics, customNoteTypes } from '../db/schema.js'
 import { registerConnection, broadcast } from '../plugins/wsHub.js'
 
 function userId(request: { user: unknown }): string {
@@ -15,12 +15,14 @@ export const syncRoutes: FastifyPluginAsync = async (app) => {
     const { since } = request.query as { since?: string }
     const sinceDate = since ? new Date(since) : new Date(0)
 
-    const [changedNotes, allCollections, allTopics, tagRows] = await Promise.all([
+    const [changedNotes, allCollections, allTopics, tagRows, customTypes] = await Promise.all([
       db.select().from(notes).where(and(eq(notes.userId, uid), gt(notes.updatedAt, sinceDate))),
       db.select().from(collections).where(eq(collections.userId, uid)),
       db.select().from(topics).where(eq(topics.userId, uid)),
       db.select({ tags: notes.tags }).from(notes)
         .where(and(eq(notes.userId, uid), isNull(notes.deletedAt))),
+      db.select().from(customNoteTypes)
+        .where(and(eq(customNoteTypes.userId, uid), isNull(customNoteTypes.deletedAt))),
     ])
 
     // Tags are stored inline in notes (no separate table) — aggregate unique names
@@ -39,11 +41,20 @@ export const syncRoutes: FastifyPluginAsync = async (app) => {
       noteCount,
     }))
 
+    const customNoteTypeList = customTypes.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      ...(r.definition as object),
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }))
+
     return {
       notes: changedNotes,
       collections: allCollections,
       topics: allTopics,
       tags: tagList,
+      customNoteTypes: customNoteTypeList,
       cursor: new Date().toISOString(),
     }
   })

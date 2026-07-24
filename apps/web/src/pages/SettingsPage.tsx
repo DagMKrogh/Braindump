@@ -193,6 +193,7 @@ function CustomTypesSection() {
   const [customTypes, setCustomTypes] = useState<CustomNoteTypeRecord[]>([])
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<NewTypeForm>(EMPTY_FORM)
+  const { serverUrl } = useSyncStore()
 
   useEffect(() => {
     getAllCustomNoteTypes().then(setCustomTypes).catch(console.error)
@@ -201,9 +202,7 @@ function CustomTypesSection() {
   async function handleCreate() {
     if (!form.label.trim()) return
     const now = new Date().toISOString()
-    const record: CustomNoteTypeRecord = {
-      id: crypto.randomUUID(),
-      userId: 'local',
+    const definition = {
       label: form.label.trim(),
       color: form.color,
       icon: form.icon,
@@ -216,8 +215,16 @@ function CustomTypesSection() {
       startTimeField: null,
       endTimeField: null,
       allDayDefault: false,
-      createdAt: now,
-      updatedAt: now,
+    }
+    let record: CustomNoteTypeRecord
+    if (serverUrl) {
+      try {
+        record = await apiClient.post<CustomNoteTypeRecord>('/note-types/custom', definition)
+      } catch {
+        record = { id: crypto.randomUUID(), userId: 'local', ...definition, createdAt: now, updatedAt: now }
+      }
+    } else {
+      record = { id: crypto.randomUUID(), userId: 'local', ...definition, createdAt: now, updatedAt: now }
     }
     await saveCustomNoteType(record)
     const updated = await getAllCustomNoteTypes()
@@ -228,6 +235,9 @@ function CustomTypesSection() {
   }
 
   async function handleDelete(id: string) {
+    if (serverUrl) {
+      try { await apiClient.delete(`/note-types/custom/${id}`) } catch { /* ignore */ }
+    }
     await deleteCustomNoteType(id)
     const updated = await getAllCustomNoteTypes()
     setCustomTypes(updated)

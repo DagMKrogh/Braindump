@@ -114,7 +114,10 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
 
   // ── Secret note encryption state ───────────────────────────────────────
   const isSecret = note.type === 'secret'
-  const [masterPassword, setMasterPassword] = useState<string | null>(null)
+  const SESSION_PW_KEY = 'braindump-master-pw'
+  const [masterPassword, setMasterPassword] = useState<string | null>(() =>
+    isSecret ? sessionStorage.getItem(SESSION_PW_KEY) : null
+  )
   const [passwordInput, setPasswordInput] = useState('')
   const [decryptError, setDecryptError] = useState('')
   const [decryptedContent, setDecryptedContent] = useState<object | null>(null)
@@ -127,6 +130,7 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
         const plain = await decrypt(note.content, passwordInput)
         setDecryptedContent(JSON.parse(plain) as object)
         setMasterPassword(passwordInput)
+        sessionStorage.setItem(SESSION_PW_KEY, passwordInput)
         setPasswordInput('')
       } catch {
         setDecryptError('Wrong password — try again.')
@@ -135,6 +139,7 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
       // First time opening (no encrypted content yet) — set password
       setDecryptedContent(note.content as object)
       setMasterPassword(passwordInput)
+      sessionStorage.setItem(SESSION_PW_KEY, passwordInput)
       setPasswordInput('')
     }
   }
@@ -192,6 +197,22 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
       editor.commands.setContent(targetContent as object, false)
     }
   }, [note.id, editor]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-decrypt when master password is already in sessionStorage (same-session note switch)
+  useEffect(() => {
+    if (!isSecret || !masterPassword || decryptedContent) return
+    if (isEncryptedPayload(note.content)) {
+      decrypt(note.content, masterPassword)
+        .then((plain) => setDecryptedContent(JSON.parse(plain) as object))
+        .catch(() => {
+          // Session password doesn't match this note — clear it so lock overlay shows
+          setMasterPassword(null)
+          sessionStorage.removeItem(SESSION_PW_KEY)
+        })
+    } else {
+      setDecryptedContent(note.content as object)
+    }
+  }, [note.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load decrypted content into editor once the user unlocks a secret note
   useEffect(() => {

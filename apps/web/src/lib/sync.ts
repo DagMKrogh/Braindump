@@ -4,8 +4,9 @@
  * this engine pushes pending changes to the server and pulls deltas.
  */
 import type { DeltaResponse, SyncPushRequest } from '@braindump/shared'
-import { getPendingNotes, upsertNotes, upsertCollections, upsertTopics, upsertTags } from './localStore'
+import { getPendingNotes, upsertNotes, upsertCollections, upsertTopics, upsertTags, upsertCustomNoteTypes } from './localStore'
 import { apiClient } from './api'
+import { initRegistry } from './noteTypeRegistry'
 import { useSyncStore } from '../stores/syncStore'
 import { useNotesStore } from '../stores/notesStore'
 import { useCollectionsStore } from '../stores/collectionsStore'
@@ -105,6 +106,10 @@ class SyncEngine {
     await upsertCollections(delta.collections)
     await upsertTopics(delta.topics)
     await upsertTags(delta.tags)
+    await upsertCustomNoteTypes(delta.customNoteTypes)
+
+    // Re-initialise registry with synced custom types
+    initRegistry(delta.customNoteTypes)
 
     // Update Zustand
     useNotesStore.getState().setNotes(localNotes)
