@@ -9,7 +9,8 @@ import { useGlobalShortcuts } from '../../hooks/useGlobalShortcuts'
 import { syncEngine } from '../../lib/sync'
 import { localBridge } from '../../lib/localBridge'
 import { initRegistry } from '../../lib/noteTypeRegistry'
-import { getAllCustomNoteTypes } from '../../lib/localStore'
+import { getAllCustomNoteTypes, getAllCollections, getAllTopics } from '../../lib/localStore'
+import { useCollectionsStore } from '../../stores/collectionsStore'
 import s from '../../styles/layout.module.css'
 
 export function AppShell() {
@@ -27,6 +28,14 @@ export function AppShell() {
   // Load custom note types and initialise registry on mount
   useEffect(() => {
     getAllCustomNoteTypes().then(types => initRegistry(types)).catch(console.error)
+  }, [])
+
+  // Hydrate collections/topics from IndexedDB (populated by sync; needed for local-only users too)
+  useEffect(() => {
+    Promise.all([getAllCollections(), getAllTopics()]).then(([cols, tops]) => {
+      useCollectionsStore.getState().setCollections(cols)
+      useCollectionsStore.getState().setTopics(tops)
+    }).catch(console.error)
   }, [])
 
   // Start/stop sync engine when server URL changes

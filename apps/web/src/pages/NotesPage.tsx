@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { FileText, Link2 } from 'lucide-react'
 import { NoteList } from '../components/layout/NoteList'
 import { NoteEditor } from '../components/editor/NoteEditor'
@@ -45,6 +45,8 @@ function BacklinksPanel({ notes, onNavigate }: Readonly<{ notes: LocalNote[]; on
 export function NotesPage() {
   const { id } = useParams<{ id?: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const collectionFilter = searchParams.get('collection')
   const { notes, activeNote, activeNoteId, setActiveNoteId, createNote, saveNote, deleteNote } = useNotes()
 
   // Sync URL param → active note
@@ -74,8 +76,14 @@ export function NotesPage() {
       : [],
   [notes, activeNote])
 
+  // Filter by active collection (set via sidebar click → ?collection=<id>)
+  const visibleNotes = useMemo(
+    () => collectionFilter ? notes.filter((n) => n.collectionId === collectionFilter) : notes,
+    [notes, collectionFilter],
+  )
+
   const handleCreateNote = async (type: Parameters<typeof createNote>[0]) => {
-    const newId = await createNote(type)
+    const newId = await createNote(type, collectionFilter ?? undefined)
     navigate(`/notes/${newId}`, { replace: true })
   }
 
@@ -92,7 +100,7 @@ export function NotesPage() {
   return (
     <>
       <NoteList
-        notes={notes}
+        notes={visibleNotes}
         activeNoteId={activeNoteId}
         onSelectNote={handleSelectNote}
         onCreateNote={handleCreateNote}

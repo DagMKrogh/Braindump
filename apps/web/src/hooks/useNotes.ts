@@ -16,7 +16,7 @@ export function useNotes() {
     })
   }, [setNotes, setLoading])
 
-  const createNote = useCallback(async (type: NoteType): Promise<string> => {
+  const createNote = useCallback(async (type: NoteType, collectionId?: string | null): Promise<string> => {
     const typeDef = getType(type)
     const now = new Date().toISOString()
     const id = crypto.randomUUID()
@@ -28,7 +28,7 @@ export function useNotes() {
       content: typeDef ? typeDef.contentTemplate() : { type: 'doc', content: [{ type: 'paragraph' }] },
       metadata: typeDef ? { ...typeDef.defaultMetadata } : {},
       tags: [],
-      collectionId: null,
+      collectionId: collectionId ?? null,
       topicId: null,
       linkedNoteIds: [],
       isPinned: false,

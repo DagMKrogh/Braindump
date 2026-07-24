@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
-import { User, Link, Palette, Puzzle, Trash2, Plus, RefreshCw, LogOut } from 'lucide-react'
-import type { CustomNoteTypeRecord } from '@braindump/shared'
+import { User, Link, Palette, Puzzle, Trash2, Plus, RefreshCw, LogOut, FolderOpen } from 'lucide-react'
+import type { CustomNoteTypeRecord, Collection } from '@braindump/shared'
 import { useUIStore } from '../stores/uiStore'
 import { useSyncStore } from '../stores/syncStore'
 import { useAuthStore } from '../stores/authStore'
 import { syncEngine } from '../lib/sync'
 import { initRegistry } from '../lib/noteTypeRegistry'
-import { getAllCustomNoteTypes, saveCustomNoteType, deleteCustomNoteType } from '../lib/localStore'
+import { getAllCustomNoteTypes, saveCustomNoteType, deleteCustomNoteType, getAllCollections } from '../lib/localStore'
+import { useCollectionsStore } from '../stores/collectionsStore'
+import { db } from '../lib/localStore'
+import { apiClient } from '../lib/api'
 import s from '../styles/layout.module.css'
 
 const ICON_OPTIONS = [
@@ -321,6 +324,112 @@ function CustomTypesSection() {
   )
 }
 
+// ---- Collections ----
+function CollectionsSection() {
+  const [collections, setCollections] = useState<Collection[]>([])
+  const [newName, setNewName] = useState('')
+  const [showForm, setShowForm] = useState(false)
+  const { serverUrl } = useSyncStore()
+
+  useEffect(() => {
+    getAllCollections().then(setCollections).catch(console.error)
+  }, [])
+
+  async function handleCreate() {
+    const name = newName.trim()
+    if (!name) return
+    const now = new Date().toISOString()
+    const id = crypto.randomUUID()
+    if (serverUrl) {
+      try {
+        const created = await apiClient.post<Collection>('/collections', { name })
+        await db.collections.put(created)
+        const updated = await getAllCollections()
+        setCollections(updated)
+        useCollectionsStore.getState().setCollections(updated)
+      } catch {
+        // fallback to local
+        const col: Collection = { id, userId: 'local', name, topicId: null, parentId: null, createdAt: now }
+        await db.collections.put(col)
+        const updated = await getAllCollections()
+        setCollections(updated)
+        useCollectionsStore.getState().setCollections(updated)
+      }
+    } else {
+      const col: Collection = { id, userId: 'local', name, topicId: null, parentId: null, createdAt: now }
+      await db.collections.put(col)
+      const updated = await getAllCollections()
+      setCollections(updated)
+      useCollectionsStore.getState().setCollections(updated)
+    }
+    setNewName('')
+    setShowForm(false)
+  }
+
+  async function handleDelete(id: string) {
+    if (serverUrl) {
+      try { await apiClient.delete(`/collections/${id}`) } catch { /* ignore */ }
+    }
+    await db.collections.delete(id)
+    const updated = await getAllCollections()
+    setCollections(updated)
+    useCollectionsStore.getState().setCollections(updated)
+  }
+
+  return (
+    <Section title="Collections" icon={<FolderOpen size={15} />}>
+      {collections.length === 0 && !showForm && (
+        <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+          No collections yet. Create one to organise your notes.
+        </p>
+      )}
+
+      {collections.map((c) => (
+        <div
+          key={c.id}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            padding: '0.5rem 0.75rem', marginBottom: '0.4rem',
+            background: 'var(--color-surface)', borderRadius: 'var(--radius)',
+            border: '1px solid var(--color-border)',
+          }}
+        >
+          <FolderOpen size={13} style={{ color: 'var(--color-accent)', flexShrink: 0 }} />
+          <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: 500 }}>{c.name}</span>
+          <button
+            className={`${s.btn} ${s.btnGhost} ${s.btnIcon}`}
+            onClick={() => { void handleDelete(c.id) }}
+            title="Delete collection"
+            style={{ color: 'var(--color-error)' }}
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      ))}
+
+      {showForm ? (
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', alignItems: 'center' }}>
+          <input
+            autoFocus
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') void handleCreate(); if (e.key === 'Escape') { setShowForm(false); setNewName('') } }}
+            placeholder="Collection name"
+            className={s.metaInput}
+            style={{ flex: 1 }}
+          />
+          <button className={`${s.btn} ${s.btnPrimary}`} onClick={() => { void handleCreate() }} disabled={!newName.trim()}>Create</button>
+          <button className={`${s.btn} ${s.btnGhost}`} onClick={() => { setShowForm(false); setNewName('') }}>Cancel</button>
+        </div>
+      ) : (
+        <button className={`${s.btn} ${s.btnGhost}`} onClick={() => setShowForm(true)} style={{ marginTop: '0.25rem' }}>
+          <Plus size={13} /> New collection
+        </button>
+      )}
+    </Section>
+  )
+}
+
 // ---- Main ----
 export function SettingsPage() {
   return (
@@ -328,6 +437,7 @@ export function SettingsPage() {
       <h1 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '2rem' }}>Settings</h1>
       <AppearanceSection />
       <SyncSection />
+      <CollectionsSection />
       <CustomTypesSection />
     </div>
   )

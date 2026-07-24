@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useSearchParams } from 'react-router-dom'
 import { FileText, Calendar, Search, Settings, Hash, FolderOpen } from 'lucide-react'
 import { SyncStatusBar } from './SyncStatusBar'
 import { useCollectionsStore } from '../../stores/collectionsStore'
@@ -10,6 +10,8 @@ export function Sidebar() {
   const { collections } = useCollectionsStore()
   const notes = useNotesStore(st => st.notes)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const activeCollectionId = searchParams.get('collection')
 
   // Derive top tags from loaded notes (by note count, descending)
   const topTags = useMemo(() => {
@@ -59,7 +61,11 @@ export function Sidebar() {
           <>
             <div className={s.sidebarSectionTitle}>Collections</div>
             {collections.map((c) => (
-              <button key={c.id} className={s.navItem}>
+              <button
+                key={c.id}
+                className={`${s.navItem} ${activeCollectionId === c.id ? s.active : ''}`}
+                onClick={() => navigate(activeCollectionId === c.id ? '/notes' : `/notes?collection=${c.id}`)}
+              >
                 <FolderOpen size={13} />
                 {c.name}
               </button>
