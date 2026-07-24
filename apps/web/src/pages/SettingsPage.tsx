@@ -6,7 +6,7 @@ import { useSyncStore } from '../stores/syncStore'
 import { useAuthStore } from '../stores/authStore'
 import { syncEngine } from '../lib/sync'
 import { initRegistry } from '../lib/noteTypeRegistry'
-import { getAllCustomNoteTypes, saveCustomNoteType, deleteCustomNoteType, getAllCollections, getAllTopics, saveTopic, deleteTopic, db } from '../lib/localStore'
+import { getAllCustomNoteTypes, saveCustomNoteType, deleteCustomNoteType, getAllCollections, saveCollection, deleteCollection, getAllTopics, saveTopic, deleteTopic } from '../lib/localStore'
 import { useCollectionsStore } from '../stores/collectionsStore'
 import { apiClient } from '../lib/api'
 import s from '../styles/layout.module.css'
@@ -352,21 +352,20 @@ function CollectionsSection() {
     if (serverUrl) {
       try {
         const created = await apiClient.post<Collection>('/collections', { name })
-        await db.collections.put(created)
+        await saveCollection(created)
         const updated = await getAllCollections()
         setCollections(updated)
         useCollectionsStore.getState().setCollections(updated)
       } catch {
-        // fallback to local
         const col: Collection = { id, userId: 'local', name, topicId: null, parentId: null, createdAt: now }
-        await db.collections.put(col)
+        await saveCollection(col)
         const updated = await getAllCollections()
         setCollections(updated)
         useCollectionsStore.getState().setCollections(updated)
       }
     } else {
       const col: Collection = { id, userId: 'local', name, topicId: null, parentId: null, createdAt: now }
-      await db.collections.put(col)
+      await saveCollection(col)
       const updated = await getAllCollections()
       setCollections(updated)
       useCollectionsStore.getState().setCollections(updated)
@@ -379,7 +378,7 @@ function CollectionsSection() {
     if (serverUrl) {
       try { await apiClient.delete(`/collections/${id}`) } catch { /* ignore */ }
     }
-    await db.collections.delete(id)
+    await deleteCollection(id)
     const updated = await getAllCollections()
     setCollections(updated)
     useCollectionsStore.getState().setCollections(updated)
