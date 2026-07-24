@@ -17,10 +17,10 @@ export const topicsRoutes: FastifyPluginAsync = async (app) => {
   // POST /topics
   app.post('/', { onRequest: [app.authenticate] }, async (request, reply) => {
     const uid = userId(request)
-    const { name, color } = request.body as { name: string; color?: string }
+    const { name } = request.body as { name: string }
     const [row] = await db
       .insert(topics)
-      .values({ userId: uid, name, color: color ?? null })
+      .values({ userId: uid, name })
       .returning()
     return reply.status(201).send(row)
   })
@@ -29,7 +29,7 @@ export const topicsRoutes: FastifyPluginAsync = async (app) => {
   app.patch('/:id', { onRequest: [app.authenticate] }, async (request, reply) => {
     const uid = userId(request)
     const { id } = request.params as { id: string }
-    const body = request.body as { name?: string; color?: string }
+    const body = request.body as { name?: string }
     const [row] = await db
       .update(topics)
       .set({ ...body, updatedAt: new Date() })

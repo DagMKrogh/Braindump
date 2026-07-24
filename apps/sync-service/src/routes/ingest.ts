@@ -67,6 +67,7 @@ export const ingestRoutes: FastifyPluginAsync = async (app) => {
 
     const now = new Date()
     const [note] = await db.insert(notes).values({
+      id: crypto.randomUUID(),
       userId,
       type: body.type ?? 'note',
       title: body.title,
