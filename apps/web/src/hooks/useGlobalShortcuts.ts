@@ -5,6 +5,7 @@ import { useUIStore } from '../stores/uiStore'
 import { useNotesStore } from '../stores/notesStore'
 import { upsertNote as localUpsert } from '../lib/localStore'
 import { getType } from '../lib/noteTypeRegistry'
+import { isTauri } from '../lib/isTauri'
 
 function isInputFocused(): boolean {
   const el = document.activeElement
@@ -66,6 +67,30 @@ export function useGlobalShortcuts() {
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [commandPaletteOpen, navigate, setCommandPaletteOpen, storeUpsert, setActiveNoteId])
+
+  // Register system-wide hotkey when running inside Tauri desktop app
+  useEffect(() => {
+    if (!isTauri()) return
+    let unregisterFn: (() => Promise<void>) | null = null
+
+    async function registerTauriShortcuts() {
+      const { register, unregisterAll } = await import('@tauri-apps/plugin-global-shortcut')
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+
+      // Cmd/Ctrl+Shift+B → bring the window to focus from anywhere in the OS
+      await register('CommandOrControl+Shift+B', async () => {
+        const win = getCurrentWindow()
+        await win.show()
+        await win.unminimize()
+        await win.setFocus()
+      })
+
+      unregisterFn = unregisterAll
+    }
+
+    registerTauriShortcuts().catch(console.error)
+    return () => { unregisterFn?.().catch(console.error) }
+  }, [])
 }
 
 export { createQuickNote }
