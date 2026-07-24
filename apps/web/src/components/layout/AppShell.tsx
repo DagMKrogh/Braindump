@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { SyncStatusBar } from './SyncStatusBar'
 import { CommandPalette } from '../ui/CommandPalette'
+import { QuickTaskModal } from '../tasks/QuickTaskModal'
 import { useUIStore } from '../../stores/uiStore'
 import { useSyncStore } from '../../stores/syncStore'
 import { useGlobalShortcuts } from '../../hooks/useGlobalShortcuts'
@@ -16,6 +17,8 @@ import s from '../../styles/layout.module.css'
 export function AppShell() {
   const sidebarOpen = useUIStore((st) => st.sidebarOpen)
   const theme = useUIStore((st) => st.theme)
+  const quickTaskOpen = useUIStore((st) => st.quickTaskOpen)
+  const setQuickTaskOpen = useUIStore((st) => st.setQuickTaskOpen)
   const serverUrl = useSyncStore((st) => st.serverUrl)
   useGlobalShortcuts()
 
@@ -61,6 +64,7 @@ export function AppShell() {
         <SyncStatusBar />
       </div>
       <CommandPalette />
+      {quickTaskOpen && <QuickTaskModal onClose={() => setQuickTaskOpen(false)} />}
     </div>
   )
 }

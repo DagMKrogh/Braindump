@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { HomePage } from './pages/HomePage'
+import { TasksPage } from './pages/TasksPage'
 import { NotesPage } from './pages/NotesPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { TagsPage } from './pages/TagsPage'
@@ -24,6 +25,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/home" replace /> },
       { path: 'home', element: <HomePage /> },
+      { path: 'tasks', element: <TasksPage /> },
       { path: 'notes', element: <NotesPage /> },
       { path: 'notes/:id', element: <NotesPage /> },
       { path: 'tags', element: <TagsPage /> },

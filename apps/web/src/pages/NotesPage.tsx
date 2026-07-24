@@ -5,6 +5,7 @@ import { NoteList } from '../components/layout/NoteList'
 import { NoteEditor } from '../components/editor/NoteEditor'
 import { MetadataPanel } from '../components/editor/MetadataPanel'
 import { TagInput } from '../components/editor/TagInput'
+import { LinkedTasksPanel } from '../components/tasks/LinkedTasksPanel'
 import { useNotes } from '../hooks/useNotes'
 import { NAVIGATE_NOTE_EVENT } from '../lib/extensions/NoteLink'
 import type { LocalNote } from '@braindump/shared'
@@ -83,8 +84,13 @@ export function NotesPage() {
   )
 
   const handleCreateNote = async (type: Parameters<typeof createNote>[0]) => {
-    const newId = await createNote(type, collectionFilter ?? undefined)
-    navigate(`/notes/${newId}`, { replace: true })
+    try {
+      const newId = await createNote(type, collectionFilter ?? undefined)
+      navigate(`/notes/${newId}`, { replace: true })
+    } catch (err) {
+      console.error('[handleCreateNote] failed:', err)
+      alert(`Failed to create note: ${String(err)}`)
+    }
   }
 
   const handleSave = (changes: Parameters<typeof saveNote>[1]) => {
@@ -120,6 +126,7 @@ export function NotesPage() {
               onSave={handleSave}
               onDelete={handleDelete}
             />
+            <LinkedTasksPanel noteId={activeNote.id} onNavigate={handleSelectNote} />
             {backlinks.length > 0 && (
               <BacklinksPanel notes={backlinks} onNavigate={handleSelectNote} />
             )}

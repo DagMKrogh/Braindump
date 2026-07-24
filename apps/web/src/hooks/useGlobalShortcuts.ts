@@ -40,7 +40,7 @@ async function createQuickNote(
 
 export function useGlobalShortcuts() {
   const navigate = useNavigate()
-  const { commandPaletteOpen, setCommandPaletteOpen } = useUIStore()
+  const { commandPaletteOpen, setCommandPaletteOpen, setQuickTaskOpen } = useUIStore()
   const { upsertNote: storeUpsert, setActiveNoteId } = useNotesStore()
 
   useEffect(() => {
@@ -56,17 +56,24 @@ export function useGlobalShortcuts() {
         setCommandPaletteOpen(false)
         return
       }
-      // N → new scratch note (only when no input is focused, no modifiers)
-      if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey && !isInputFocused()) {
-        e.preventDefault()
-        createQuickNote('scratch', storeUpsert, setActiveNoteId)
-          .then(id => navigate(`/notes/${id}`))
-          .catch(console.error)
+      if (!e.metaKey && !e.ctrlKey && !e.altKey && !isInputFocused()) {
+        // N → new scratch note
+        if (e.key === 'n') {
+          e.preventDefault()
+          createQuickNote('scratch', storeUpsert, setActiveNoteId)
+            .then(id => navigate(`/notes/${id}`))
+            .catch(console.error)
+        }
+        // T → open quick task modal
+        if (e.key === 't') {
+          e.preventDefault()
+          setQuickTaskOpen(true)
+        }
       }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [commandPaletteOpen, navigate, setCommandPaletteOpen, storeUpsert, setActiveNoteId])
+  }, [commandPaletteOpen, navigate, setCommandPaletteOpen, setQuickTaskOpen, storeUpsert, setActiveNoteId])
 
   // Register system-wide hotkey when running inside Tauri desktop app
   useEffect(() => {

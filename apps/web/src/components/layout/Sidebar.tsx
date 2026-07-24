@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { NavLink, useNavigate, useSearchParams } from 'react-router-dom'
-import { FileText, Calendar, Search, Settings, Hash, FolderOpen, LayoutDashboard } from 'lucide-react'
+import { FileText, Calendar, Search, Settings, Hash, FolderOpen, LayoutDashboard, CheckSquare } from 'lucide-react'
 import { SyncStatusBar } from './SyncStatusBar'
 import { useCollectionsStore } from '../../stores/collectionsStore'
 import { useNotesStore } from '../../stores/notesStore'
@@ -37,6 +37,10 @@ export function Sidebar() {
         <NavLink to="/home" className={({ isActive }) => `${s.navItem} ${isActive ? s.active : ''}`}>
           <LayoutDashboard size={15} />
           Home
+        </NavLink>
+        <NavLink to="/tasks" className={({ isActive }) => `${s.navItem} ${isActive ? s.active : ''}`}>
+          <CheckSquare size={15} />
+          Tasks
         </NavLink>
         <NavLink to="/notes" className={({ isActive }) => `${s.navItem} ${isActive ? s.active : ''}`}>
           <FileText size={15} />

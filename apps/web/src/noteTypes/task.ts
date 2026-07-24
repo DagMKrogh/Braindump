@@ -10,6 +10,8 @@ export const taskType: NoteTypeDefinition = {
     { key: 'status', label: 'Status', type: 'select', options: ['open', 'in-progress', 'done', 'cancelled'], required: true },
     { key: 'priority', label: 'Priority', type: 'select', options: ['low', 'medium', 'high'] },
     { key: 'dueDate', label: 'Due Date', type: 'date' },
+    { key: 'assigneeId', label: 'Assignee', type: 'text', placeholder: 'Contact note ID' },
+    { key: 'assigneeName', label: 'Assignee Name', type: 'text', placeholder: 'Display name' },
   ],
   defaultMetadata: { status: 'open', priority: 'medium' },
   calendarDateField: 'dueDate',

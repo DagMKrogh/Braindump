@@ -9,12 +9,14 @@ interface UIState {
   theme: Theme
   editorMode: EditorMode
   commandPaletteOpen: boolean
+  quickTaskOpen: boolean
   setSidebarOpen: (open: boolean) => void
   toggleSidebar: () => void
   setTheme: (theme: Theme) => void
   setEditorMode: (mode: EditorMode) => void
   setCommandPaletteOpen: (open: boolean) => void
   toggleCommandPalette: () => void
+  setQuickTaskOpen: (open: boolean) => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -24,12 +26,14 @@ export const useUIStore = create<UIState>()(
       theme: 'system' as Theme,
       editorMode: 'split' as EditorMode,
       commandPaletteOpen: false,
+      quickTaskOpen: false,
       setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setTheme: (theme: Theme) => set({ theme }),
       setEditorMode: (mode: EditorMode) => set({ editorMode: mode }),
       setCommandPaletteOpen: (open: boolean) => set({ commandPaletteOpen: open }),
       toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
+      setQuickTaskOpen: (open: boolean) => set({ quickTaskOpen: open }),
     }),
     {
       name: 'braindump-ui',
