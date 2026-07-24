@@ -28,7 +28,17 @@ export function NoteListItem({ note, isActive, onClick }: Props) {
       onClick={onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onClick()}
+      data-note-item
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); return }
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+        e.preventDefault()
+        const all = Array.from(document.querySelectorAll<HTMLElement>('[data-note-item]'))
+        const idx = all.indexOf(e.currentTarget as HTMLElement)
+        if (e.key === 'ArrowDown') all[idx + 1]?.focus()
+        else if (idx === 0) document.querySelector<HTMLElement>('[data-note-search]')?.focus()
+        else all[idx - 1]?.focus()
+      }}
     >
       <div className={s.noteItemHeader}>
         <span className={s.noteItemTitle}>{note.title || 'Untitled'}</span>

@@ -52,7 +52,7 @@ export function SearchPage() {
   const allTypes = getAllTypes()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, height: '100%' }}>
       {/* Search header */}
       <div style={{
         padding: '1rem 1.5rem',

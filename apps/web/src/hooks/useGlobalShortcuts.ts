@@ -51,6 +51,19 @@ export function useGlobalShortcuts() {
         setCommandPaletteOpen(true)
         return
       }
+      // Cmd+, / Ctrl+, → Settings
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault()
+        navigate('/settings')
+        return
+      }
+      // Cmd+Shift+T / Ctrl+Shift+T → new task linked to current note (works even inside editor)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'T') {
+        e.preventDefault()
+        const activeNoteId = useNotesStore.getState().activeNoteId
+        setQuickTaskOpen(true, activeNoteId ?? null)
+        return
+      }
       // Escape → close command palette
       if (e.key === 'Escape' && commandPaletteOpen) {
         setCommandPaletteOpen(false)

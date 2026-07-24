@@ -16,6 +16,15 @@ export function NoteList({ notes, activeNoteId, onSelectNote, onCreateNote }: Pr
   const [query, setQuery] = useState('')
   const [pickerOpen, setPickerOpen] = useState(false)
 
+  function onSearchKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      document.querySelector<HTMLElement>('[data-note-item]')?.focus()
+    } else if (e.key === 'Escape') {
+      setQuery('')
+    }
+  }
+
   const filtered = useMemo(() => {
     if (!query.trim()) return notes
     const q = query.toLowerCase()
@@ -31,10 +40,12 @@ export function NoteList({ notes, activeNoteId, onSelectNote, onCreateNote }: Pr
       <div className={s.noteListHeader}>
         <div className={s.noteListActions}>
           <input
+            data-note-search
             className={s.searchInput}
             placeholder="Filter notes…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onSearchKeyDown}
           />
           <div style={{ position: 'relative' }}>
             <button

@@ -89,16 +89,19 @@ function TaskRow({
   const due = dueDate ? formatDueDate(dueDate) : null
 
   return (
-    <div className={`${s.taskRow} ${isDone ? s.taskRowDone : ''}`} onClick={() => onOpen(task.id)}>
+    <div className={`${s.taskRow} ${isDone ? s.taskRowDone : ''}`}>
       <StatusToggle task={task} onChange={onToggle} />
 
       {priority && (
         <span className={s.prioDot} style={{ background: PRIO_COLOR[priority] }} title={priority} />
       )}
 
-      <span className={`${s.taskTitle} ${isDone ? s.taskTitleDone : ''}`}>
+      <button
+        className={`${s.taskTitleBtn} ${isDone ? s.taskTitleDone : ''}`}
+        onClick={() => onOpen(task.id)}
+      >
         {task.title || 'Untitled'}
-      </span>
+      </button>
 
       <span className={s.taskMeta}>
         {assigneeName && (

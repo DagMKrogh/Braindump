@@ -186,7 +186,8 @@
   cursor: pointer;
   transition: background var(--transition);
 }
-.assigneeOption:hover { background: var(--color-surface-2); }
+.assigneeOption:hover,
+.assigneeOptionActive { background: var(--color-surface-2); }
 
 .assigneeOrg {
   font-size: 0.7rem;

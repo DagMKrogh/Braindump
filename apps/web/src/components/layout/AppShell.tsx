@@ -18,7 +18,9 @@ export function AppShell() {
   const sidebarOpen = useUIStore((st) => st.sidebarOpen)
   const theme = useUIStore((st) => st.theme)
   const quickTaskOpen = useUIStore((st) => st.quickTaskOpen)
+  const quickTaskLinkedNoteId = useUIStore((st) => st.quickTaskLinkedNoteId)
   const setQuickTaskOpen = useUIStore((st) => st.setQuickTaskOpen)
+
   const serverUrl = useSyncStore((st) => st.serverUrl)
   useGlobalShortcuts()
 
@@ -64,7 +66,7 @@ export function AppShell() {
         <SyncStatusBar />
       </div>
       <CommandPalette />
-      {quickTaskOpen && <QuickTaskModal onClose={() => setQuickTaskOpen(false)} />}
+      {quickTaskOpen && <QuickTaskModal linkedNoteId={quickTaskLinkedNoteId} onClose={() => setQuickTaskOpen(false)} />}
     </div>
   )
 }

@@ -75,7 +75,7 @@ export function TagsPage() {
   const allExpanded = tagGroups.every(g => expanded.has(g.tag))
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, height: '100%', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{
         padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--color-border)',

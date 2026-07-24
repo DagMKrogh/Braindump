@@ -22,12 +22,32 @@ export function QuickTaskModal({ linkedNoteId, onClose, onCreated }: Props) {
   const [assigneeQuery, setAssigneeQuery] = useState('')
   const [selectedAssignee, setSelectedAssignee] = useState<LocalNote | null>(null)
   const [assigneeOpen, setAssigneeOpen] = useState(false)
+  const [assigneeIdx, setAssigneeIdx] = useState(-1)
   const [saving, setSaving] = useState(false)
 
   const titleRef = useRef<HTMLInputElement>(null)
   const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { titleRef.current?.focus() }, [])
+
+  // Focus trap — Tab cycles within the modal
+  useEffect(() => {
+    const modal = modalRef.current
+    if (!modal) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+      const focusable = Array.from(
+        modal.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])')
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable.at(-1)!
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [])
 
   // Contacts from the notes store
   const contacts = useMemo(() =>
@@ -169,17 +189,28 @@ export function QuickTaskModal({ linkedNoteId, onClose, onCreated }: Props) {
               className={s.assigneeInput}
               placeholder="Search contacts…"
               value={assigneeQuery}
-              onChange={(e) => { setAssigneeQuery(e.target.value); setAssigneeOpen(true) }}
+              onChange={(e) => { setAssigneeQuery(e.target.value); setAssigneeOpen(true); setAssigneeIdx(-1) }}
               onFocus={() => setAssigneeOpen(true)}
+              onKeyDown={(e) => {
+                if (!assigneeOpen || filteredContacts.length === 0) return
+                if (e.key === 'ArrowDown') { e.preventDefault(); setAssigneeIdx(i => Math.min(i + 1, filteredContacts.length - 1)) }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); setAssigneeIdx(i => Math.max(i - 1, -1)) }
+                else if (e.key === 'Enter' && assigneeIdx >= 0) {
+                  e.preventDefault()
+                  const c = filteredContacts[assigneeIdx]
+                  if (c) { setSelectedAssignee(c); setAssigneeOpen(false); setAssigneeQuery(''); setAssigneeIdx(-1) }
+                }
+                else if (e.key === 'Escape') { setAssigneeOpen(false); setAssigneeIdx(-1) }
+              }}
             />
           )}
           {assigneeOpen && !selectedAssignee && filteredContacts.length > 0 && (
             <div className={s.assigneeDropdown}>
-              {filteredContacts.map((c) => (
+              {filteredContacts.map((c, i) => (
                 <button
                   key={c.id}
-                  className={s.assigneeOption}
-                  onMouseDown={(e) => { e.preventDefault(); setSelectedAssignee(c); setAssigneeOpen(false); setAssigneeQuery('') }}
+                  className={`${s.assigneeOption} ${i === assigneeIdx ? s.assigneeOptionActive : ''}`}
+                  onMouseDown={(e) => { e.preventDefault(); setSelectedAssignee(c); setAssigneeOpen(false); setAssigneeQuery(''); setAssigneeIdx(-1) }}
                 >
                   <User size={11} />
                   {c.title}

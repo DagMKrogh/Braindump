@@ -112,7 +112,7 @@ export function CalendarPage() {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor), i))
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, height: '100%', overflow: 'hidden' }}>
       {/* Toolbar */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '0.5rem',

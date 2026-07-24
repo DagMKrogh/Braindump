@@ -180,6 +180,24 @@
   text-overflow: ellipsis;
   min-width: 0;
 }
+
+.taskTitleBtn {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  cursor: pointer;
+}
+.taskTitleBtn:hover {
+  color: var(--color-accent);
+}
 .taskTitleDone {
   text-decoration: line-through;
   color: var(--color-text-muted);

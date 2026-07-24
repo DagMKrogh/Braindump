@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FileText, CalendarDays, Search, Settings, Plus } from 'lucide-react'
+import { FileText, CalendarDays, Search, Settings, Plus, CheckSquare, LayoutDashboard } from 'lucide-react'
 import type { LocalNote, NoteType } from '@braindump/shared'
 import { useUIStore } from '../../stores/uiStore'
 import { useNotesStore } from '../../stores/notesStore'
@@ -9,24 +9,38 @@ import { createQuickNote } from '../../hooks/useGlobalShortcuts'
 
 type PaletteItem =
   | { kind: 'nav'; id: string; label: string; icon: React.ReactNode; path: string }
+  | { kind: 'action'; id: string; label: string; icon: React.ReactNode; actionKey: string }
   | { kind: 'create'; id: string; label: string; type: NoteType; color: string }
   | { kind: 'note'; id: string; label: string; note: LocalNote; color: string }
 
 const NAV_ITEMS: PaletteItem[] = [
+  { kind: 'nav', id: 'nav-home', label: 'Go to Home', icon: <LayoutDashboard size={14} />, path: '/home' },
+  { kind: 'nav', id: 'nav-tasks', label: 'Go to Tasks', icon: <CheckSquare size={14} />, path: '/tasks' },
   { kind: 'nav', id: 'nav-notes', label: 'Go to Notes', icon: <FileText size={14} />, path: '/notes' },
   { kind: 'nav', id: 'nav-calendar', label: 'Go to Calendar', icon: <CalendarDays size={14} />, path: '/calendar' },
   { kind: 'nav', id: 'nav-search', label: 'Go to Search', icon: <Search size={14} />, path: '/search' },
   { kind: 'nav', id: 'nav-settings', label: 'Go to Settings', icon: <Settings size={14} />, path: '/settings' },
 ]
 
-function buildItems(query: string, notes: LocalNote[]): PaletteItem[] {
+const BASE_ACTION_ITEMS: PaletteItem[] = [
+  { kind: 'action', id: 'action-new-task', label: 'New Task…', icon: <CheckSquare size={14} />, actionKey: 'new-task' },
+]
+
+function buildItems(query: string, notes: LocalNote[], activeNoteId: string | null): PaletteItem[] {
   const q = query.toLowerCase().trim()
   const allTypes = getAllTypes()
   const nonCalendarTypes = allTypes.filter(t => !t.isCalendarEvent)
   const typeColorMap = new Map(allTypes.map(t => [t.id, t.color]))
 
+  const allActions: PaletteItem[] = activeNoteId
+    ? [
+        ...BASE_ACTION_ITEMS,
+        { kind: 'action', id: 'action-new-linked-task', label: 'New Linked Task…', icon: <CheckSquare size={14} />, actionKey: 'new-linked-task' },
+      ]
+    : BASE_ACTION_ITEMS
+  const actionItems = allActions.filter(it => !q || it.label.toLowerCase().includes(q))
   const createItems: PaletteItem[] = nonCalendarTypes
-    .filter(t => !q || `new ${t.label}`.toLowerCase().includes(q))
+    .filter(t => t.id !== 'task' && (!q || `new ${t.label}`.toLowerCase().includes(q)))
     .map(t => ({ kind: 'create', id: `create-${t.id}`, label: `New ${t.label}`, type: t.id as NoteType, color: t.color }))
   const noteItems: PaletteItem[] = notes
     .filter(n => !q || n.title.toLowerCase().includes(q))
@@ -35,20 +49,21 @@ function buildItems(query: string, notes: LocalNote[]): PaletteItem[] {
 
   const navItems = NAV_ITEMS.filter(it => !q || it.label.toLowerCase().includes(q))
 
-  return [...navItems, ...createItems, ...noteItems]
+  return [...navItems, ...actionItems, ...createItems, ...noteItems]
 }
 
 export function CommandPalette() {
   const navigate = useNavigate()
-  const { commandPaletteOpen, setCommandPaletteOpen } = useUIStore()
+  const { commandPaletteOpen, setCommandPaletteOpen, setQuickTaskOpen } = useUIStore()
   const notes = useNotesStore(st => st.notes)
+  const activeNoteId = useNotesStore(st => st.activeNoteId)
   const { upsertNote: storeUpsert, setActiveNoteId } = useNotesStore()
   const [query, setQuery] = useState('')
   const [selectedIdx, setSelectedIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  const items = useMemo(() => buildItems(query, notes), [query, notes])
+  const items = useMemo(() => buildItems(query, notes, activeNoteId), [query, notes, activeNoteId])
 
   // Reset when opened
   useEffect(() => {
@@ -78,6 +93,9 @@ export function CommandPalette() {
     close()
     if (item.kind === 'nav') {
       navigate(item.path)
+    } else if (item.kind === 'action') {
+      if (item.actionKey === 'new-task') setQuickTaskOpen(true)
+      else if (item.actionKey === 'new-linked-task') setQuickTaskOpen(true, activeNoteId)
     } else if (item.kind === 'create') {
       createQuickNote(item.type, storeUpsert, setActiveNoteId)
         .then(id => navigate(`/notes/${id}`))
@@ -152,7 +170,8 @@ export function CommandPalette() {
             const showSection = item.kind !== lastKind
             lastKind = item.kind
             const isSelected = idx === selectedIdx
-            const sectionLabel = item.kind === 'nav' ? 'Navigate' : item.kind === 'create' ? 'Create' : 'Open note'
+            const SECTION_LABELS: Record<string, string> = { nav: 'Navigate', action: 'Actions', create: 'Create', note: 'Open note' }
+            const sectionLabel = SECTION_LABELS[item.kind] ?? item.kind
 
             return (
               <div key={item.id}>
@@ -173,7 +192,7 @@ export function CommandPalette() {
                     color: 'var(--color-text)', fontSize: '0.875rem',
                   }}
                 >
-                  {item.kind === 'nav' && (
+                  {(item.kind === 'nav' || item.kind === 'action') && (
                     <span style={{ color: 'var(--color-text-muted)' }}>{item.icon}</span>
                   )}
                   {item.kind === 'create' && (
