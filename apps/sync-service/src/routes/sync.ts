@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { eq, and, gt } from 'drizzle-orm'
+import { eq, and, gt, isNull } from 'drizzle-orm'
 import { db } from '../plugins/db.js'
-import { notes } from '../db/schema.js'
+import { notes, collections, topics } from '../db/schema.js'
 import { registerConnection, broadcast } from '../plugins/wsHub.js'
 
 function userId(request: { user: unknown }): string {
@@ -15,10 +15,37 @@ export const syncRoutes: FastifyPluginAsync = async (app) => {
     const { since } = request.query as { since?: string }
     const sinceDate = since ? new Date(since) : new Date(0)
 
-    const changed = await db.select().from(notes)
-      .where(and(eq(notes.userId, uid), gt(notes.updatedAt, sinceDate)))
+    const [changedNotes, allCollections, allTopics, tagRows] = await Promise.all([
+      db.select().from(notes).where(and(eq(notes.userId, uid), gt(notes.updatedAt, sinceDate))),
+      db.select().from(collections).where(eq(collections.userId, uid)),
+      db.select().from(topics).where(eq(topics.userId, uid)),
+      db.select({ tags: notes.tags }).from(notes)
+        .where(and(eq(notes.userId, uid), isNull(notes.deletedAt))),
+    ])
 
-    return { notes: changed, serverTime: new Date().toISOString() }
+    // Tags are stored inline in notes (no separate table) — aggregate unique names
+    const tagCounts = new Map<string, number>()
+    for (const row of tagRows) {
+      if (Array.isArray(row.tags)) {
+        for (const t of row.tags as string[]) {
+          tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1)
+        }
+      }
+    }
+    const tagList = Array.from(tagCounts.entries()).map(([name, noteCount]) => ({
+      id: name,
+      userId: uid,
+      name,
+      noteCount,
+    }))
+
+    return {
+      notes: changedNotes,
+      collections: allCollections,
+      topics: allTopics,
+      tags: tagList,
+      cursor: new Date().toISOString(),
+    }
   })
 
   // POST /sync/push — batch upsert of client notes
@@ -83,9 +110,25 @@ export const syncRoutes: FastifyPluginAsync = async (app) => {
     return { synced: results.length, ids: results }
   })
 
-  // WS /sync/ws
-  app.get('/ws', { websocket: true, onRequest: [app.authenticate] }, (socket, request) => {
-    const uid = userId(request)
+  // WS /sync/ws — accepts JWT via ?token= query param (WS can't send headers)
+  app.get('/ws', { websocket: true }, (socket, request) => {
+    const { token } = request.query as { token?: string }
+    let uid: string
+    try {
+      if (token) {
+        const payload = app.jwt.verify<{ sub: string }>(token)
+        uid = payload.sub
+      } else {
+        // Fallback: standard Bearer header (e.g. testing with curl)
+        const payload = app.jwt.verify<{ sub: string }>(
+          (request.headers.authorization ?? '').replace('Bearer ', '')
+        )
+        uid = payload.sub
+      }
+    } catch {
+      socket.close(1008, 'Unauthorized')
+      return
+    }
     registerConnection(uid, socket)
     socket.send(JSON.stringify({ type: 'connected', payload: { userId: uid } }))
   })

@@ -65,3 +65,122 @@ body {
   --color-text: #0f172a;
   --color-text-muted: #64748b;
 }
+
+/* ── Note link inline node (rendered by NoteLink Tiptap extension) ─────── */
+.note-link {
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border-radius: 3px;
+  padding: 0 3px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.9em;
+  transition: background 150ms ease;
+}
+
+.note-link:hover {
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+
+/* ── Note link suggestion popup (vanilla DOM, appended to body) ────────── */
+.note-link-popup {
+  position: fixed;
+  z-index: 1000;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  min-width: 220px;
+  max-width: 320px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.note-link-item {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.875rem;
+  font-size: 0.825rem;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+
+.note-link-item:hover,
+.note-link-item.selected {
+  background: var(--color-surface-2);
+}
+
+.note-link-item-empty {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+}
+
+/* ── Syntax highlighting — One Dark palette (lowlight / hljs classes) ─── */
+.ProseMirror pre {
+  position: relative;
+}
+
+/* Language badge from data-language attribute */
+.ProseMirror pre::before {
+  content: attr(data-language);
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.ProseMirror .hljs-comment,
+.ProseMirror .hljs-quote       { color: #6a737d; font-style: italic; }
+
+.ProseMirror .hljs-keyword,
+.ProseMirror .hljs-selector-tag,
+.ProseMirror .hljs-literal,
+.ProseMirror .hljs-strong      { color: #c678dd; }
+
+.ProseMirror .hljs-string,
+.ProseMirror .hljs-attribute,
+.ProseMirror .hljs-addition    { color: #98c379; }
+
+.ProseMirror .hljs-number,
+.ProseMirror .hljs-regexp,
+.ProseMirror .hljs-link        { color: #d19a66; }
+
+.ProseMirror .hljs-name,
+.ProseMirror .hljs-selector-id,
+.ProseMirror .hljs-selector-class,
+.ProseMirror .hljs-built_in,
+.ProseMirror .hljs-tag,
+.ProseMirror .hljs-deletion    { color: #e06c75; }
+
+.ProseMirror .hljs-title,
+.ProseMirror .hljs-section,
+.ProseMirror .hljs-function,
+.ProseMirror .hljs-meta        { color: #61afef; }
+
+.ProseMirror .hljs-variable,
+.ProseMirror .hljs-template-variable,
+.ProseMirror .hljs-params,
+.ProseMirror .hljs-type,
+.ProseMirror .hljs-class       { color: #e5c07b; }
+
+.ProseMirror .hljs-emphasis    { font-style: italic; }
+
+/* ── Print styles ─────────────────────────────────────────────────────── */
+@media print {
+  .sidebar, .noteListPanel, .editorHeader, .syncStatusBar { display: none !important; }
+  .editorBody { padding: 0 !important; overflow: visible !important; }
+}

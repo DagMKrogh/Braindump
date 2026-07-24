@@ -7,6 +7,7 @@ import { useUIStore } from '../../stores/uiStore'
 import { useSyncStore } from '../../stores/syncStore'
 import { useGlobalShortcuts } from '../../hooks/useGlobalShortcuts'
 import { syncEngine } from '../../lib/sync'
+import { localBridge } from '../../lib/localBridge'
 import { initRegistry } from '../../lib/noteTypeRegistry'
 import { getAllCustomNoteTypes } from '../../lib/localStore'
 import s from '../../styles/layout.module.css'
@@ -34,6 +35,12 @@ export function AppShell() {
     else syncEngine.stop()
     return () => syncEngine.stop()
   }, [serverUrl])
+
+  // Local bridge — always try to connect; silently retries if bridge isn't running
+  useEffect(() => {
+    localBridge.start()
+    return () => localBridge.stop()
+  }, [])
 
   return (
     <div className={s.appShell}>

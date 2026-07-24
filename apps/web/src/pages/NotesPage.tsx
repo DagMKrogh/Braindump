@@ -1,11 +1,46 @@
-import { useEffect } from 'react'
+import { useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { FileText } from 'lucide-react'
+import { FileText, Link2 } from 'lucide-react'
 import { NoteList } from '../components/layout/NoteList'
 import { NoteEditor } from '../components/editor/NoteEditor'
 import { MetadataPanel } from '../components/editor/MetadataPanel'
+import { TagInput } from '../components/editor/TagInput'
 import { useNotes } from '../hooks/useNotes'
+import { NAVIGATE_NOTE_EVENT } from '../lib/extensions/NoteLink'
+import type { LocalNote } from '@braindump/shared'
 import s from '../styles/layout.module.css'
+
+function BacklinksPanel({ notes, onNavigate }: Readonly<{ notes: LocalNote[]; onNavigate: (id: string) => void }>) {
+  return (
+    <div style={{
+      flexShrink: 0,
+      borderTop: '1px solid var(--color-border)',
+      maxHeight: 160,
+      overflowY: 'auto',
+      padding: '0.5rem 1.5rem',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+        <Link2 size={12} style={{ color: 'var(--color-text-muted)' }} />
+        <span style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-muted)' }}>
+          Referenced by {notes.length} {notes.length === 1 ? 'note' : 'notes'}
+        </span>
+      </div>
+      {notes.map((n) => (
+        <button
+          key={n.id}
+          onClick={() => onNavigate(n.id)}
+          style={{
+            display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none',
+            padding: '0.2rem 0', fontSize: '0.8rem', color: 'var(--color-accent)', cursor: 'pointer',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}
+        >
+          {n.title || 'Untitled'}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export function NotesPage() {
   const { id } = useParams<{ id?: string }>()
@@ -17,10 +52,27 @@ export function NotesPage() {
     if (id && id !== activeNoteId) setActiveNoteId(id)
   }, [id, activeNoteId, setActiveNoteId])
 
-  const handleSelectNote = (noteId: string) => {
+  const handleSelectNote = useCallback((noteId: string) => {
     setActiveNoteId(noteId)
     navigate(`/notes/${noteId}`, { replace: true })
-  }
+  }, [setActiveNoteId, navigate])
+
+  // Listen for note-link click navigation from the Tiptap NoteLink extension
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { noteId } = (e as CustomEvent<{ noteId: string }>).detail
+      handleSelectNote(noteId)
+    }
+    window.addEventListener(NAVIGATE_NOTE_EVENT, handler)
+    return () => window.removeEventListener(NAVIGATE_NOTE_EVENT, handler)
+  }, [handleSelectNote])
+
+  // Notes that link to the currently active note (backlinks)
+  const backlinks = useMemo(() =>
+    activeNote
+      ? notes.filter((n) => !n.deletedAt && n.linkedNoteIds.includes(activeNote.id))
+      : [],
+  [notes, activeNote])
 
   const handleCreateNote = async (type: Parameters<typeof createNote>[0]) => {
     const newId = await createNote(type)
@@ -50,12 +102,19 @@ export function NotesPage() {
         {activeNote ? (
           <>
             <MetadataPanel note={activeNote} onSave={handleSave} />
+            <TagInput
+              tags={activeNote.tags}
+              onChange={(tags) => handleSave({ tags })}
+            />
             <NoteEditor
               key={activeNote.id}
               note={activeNote}
               onSave={handleSave}
               onDelete={handleDelete}
             />
+            {backlinks.length > 0 && (
+              <BacklinksPanel notes={backlinks} onNavigate={handleSelectNote} />
+            )}
           </>
         ) : (
           <div className={s.editorEmpty}>

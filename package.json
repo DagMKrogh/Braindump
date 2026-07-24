@@ -9,6 +9,7 @@
   "scripts": {
     "dev:web": "pnpm --filter @braindump/web dev",
     "dev:sync": "pnpm --filter @braindump/sync-service dev",
+    "dev:bridge": "pnpm --filter @braindump/local-bridge dev",
     "build:web": "pnpm --filter @braindump/web build",
     "build:sync": "pnpm --filter @braindump/sync-service build",
     "build:shared": "pnpm --filter @braindump/shared build",

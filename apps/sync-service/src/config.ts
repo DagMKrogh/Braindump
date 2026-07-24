@@ -21,4 +21,5 @@ export const config = {
   allowedOrigin: optional('ALLOWED_ORIGIN', 'http://localhost:5173'),
   frontendUrl: optional('FRONTEND_URL', 'http://localhost:5173'),
   nodeEnv: optional('NODE_ENV', 'development'),
+  ingestApiKey: optional('INGEST_API_KEY', ''),
 } as const

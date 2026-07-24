@@ -6,11 +6,16 @@ import { TagsPage } from './pages/TagsPage'
 import { SearchPage } from './pages/SearchPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { AuthCallbackPage } from './pages/AuthCallbackPage'
+import { SharePage } from './pages/SharePage'
 
 export const router = createBrowserRouter([
   {
     path: '/auth/callback',
     element: <AuthCallbackPage />,
+  },
+  {
+    path: '/share/:slug',
+    element: <SharePage />,
   },
   {
     path: '/',
