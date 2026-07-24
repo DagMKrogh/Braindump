@@ -39,10 +39,6 @@
   "plugins": {
     "sql": {
       "preload": ["sqlite:braindump.db"]
-    },
-    "global-shortcut": {},
-    "updater": {
-      "active": false
     }
   }
 }

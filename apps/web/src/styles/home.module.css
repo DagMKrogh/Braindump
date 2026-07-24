@@ -1,0 +1,270 @@
+/* ── Page layout ────────────────────────────────────────────────────────── */
+
+.page {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: var(--color-bg);
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.greeting {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.dateLabel {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 0.2rem;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.captureBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition);
+  white-space: nowrap;
+}
+
+.captureBtn:hover {
+  background: var(--color-accent-hover);
+}
+
+/* ── Widget toggle bar ───────────────────────────────────────────────────── */
+
+.toggleBar {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.toggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.toggleBtnOn {
+  background: color-mix(in srgb, var(--color-accent) 15%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  color: var(--color-accent);
+}
+
+/* ── Stats row ───────────────────────────────────────────────────────────── */
+
+.statsRow {
+  display: flex;
+  gap: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  border-right: 1px solid var(--color-border);
+}
+
+.stat:last-child {
+  border-right: none;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  margin-top: 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Widget grid ─────────────────────────────────────────────────────────── */
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.spanFull {
+  grid-column: 1 / -1;
+}
+
+/* ── Widget ──────────────────────────────────────────────────────────────── */
+
+.widget {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.widgetHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface-2) 40%, var(--color-surface));
+}
+
+.widgetIcon {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+}
+
+.widgetTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+  flex: 1;
+}
+
+.widgetCount {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  color: var(--color-accent);
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+}
+
+.widgetBody {
+  padding: 0.375rem 0;
+}
+
+.widgetEmpty {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  padding: 1rem 1rem;
+  text-align: center;
+}
+
+/* ── Note row ────────────────────────────────────────────────────────────── */
+
+.noteRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  transition: background var(--transition);
+  min-width: 0;
+}
+
+.noteRow:hover {
+  background: var(--color-surface-2);
+}
+
+.noteRowDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.noteRowTitle {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.noteRowMeta {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.noteRowChevron {
+  color: var(--color-text-muted);
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+/* ── Upcoming day group ──────────────────────────────────────────────────── */
+
+.upcomingDay {
+  padding-top: 0.125rem;
+}
+
+.upcomingDayLabel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-accent);
+  padding: 0.5rem 1rem 0.2rem;
+}
+
+/* ── Task status toggle ──────────────────────────────────────────────────── */
+
+.taskToggle {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.1rem;
+  border-radius: 3px;
+  transition: background var(--transition);
+}
+
+.taskToggle:hover {
+  background: var(--color-surface-2);
+}
