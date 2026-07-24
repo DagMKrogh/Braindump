@@ -241,6 +241,12 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   overflow: hidden;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.kanbanColDragOver {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface));
 }
 
 .kanbanColHeader {
@@ -319,6 +325,22 @@
   word-break: break-word;
 }
 
+.kanbanTitleBtn {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  font-size: 0.82rem;
+  color: var(--color-text);
+  line-height: 1.4;
+  word-break: break-word;
+  cursor: pointer;
+}
+.kanbanTitleBtn:hover {
+  color: var(--color-accent);
+}
+
 .kanbanCardMeta {
   display: flex;
   gap: 0.3rem;
@@ -342,4 +364,9 @@
   color: var(--color-text-muted);
   text-align: center;
   padding: 0.5rem 0;
+}
+
+.kanbanEmptyDragOver {
+  color: var(--color-accent);
+  font-weight: 600;
 }

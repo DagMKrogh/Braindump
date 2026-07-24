@@ -130,10 +130,12 @@ function KanbanCard({
   task,
   onOpen,
   onToggle,
+  onDragStart,
 }: {
   task: LocalNote
   onOpen: (id: string) => void
   onToggle: (t: LocalNote) => void
+  onDragStart: (id: string) => void
 }) {
   const priority = task.metadata.priority as Priority | undefined
   const dueDate = task.metadata.dueDate as string | undefined
@@ -141,13 +143,23 @@ function KanbanCard({
   const due = dueDate ? formatDueDate(dueDate) : null
 
   return (
-    <div className={s.kanbanCard} onClick={() => onOpen(task.id)}>
+    <div
+      className={s.kanbanCard}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', task.id)
+        onDragStart(task.id)
+      }}
+    >
       <div className={s.kanbanCardTop}>
         <StatusToggle task={task} onChange={onToggle} />
         {priority && priority !== 'medium' && (
           <Flag size={11} style={{ color: PRIO_COLOR[priority], flexShrink: 0 }} />
         )}
-        <span className={s.kanbanTitle}>{task.title || 'Untitled'}</span>
+        <button className={s.kanbanTitleBtn} onClick={() => onOpen(task.id)}>
+          {task.title || 'Untitled'}
+        </button>
       </div>
       {(assigneeName || due) && (
         <div className={s.kanbanCardMeta}>
@@ -164,20 +176,34 @@ function KanbanCard({
 function KanbanColumn({
   status,
   tasks,
-  allNotes,
   onOpen,
   onToggle,
   onAdd,
+  onDrop,
+  onDragStart,
 }: {
   status: Status
   tasks: LocalNote[]
-  allNotes: LocalNote[]
   onOpen: (id: string) => void
   onToggle: (t: LocalNote) => void
   onAdd: (status: Status) => void
+  onDrop: (taskId: string, toStatus: Status) => void
+  onDragStart: (id: string) => void
 }) {
+  const [dragOver, setDragOver] = useState(false)
+
   return (
-    <div className={s.kanbanCol}>
+    <div
+      className={`${s.kanbanCol} ${dragOver ? s.kanbanColDragOver : ''}`}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOver(true) }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setDragOver(false)
+        const taskId = e.dataTransfer.getData('text/plain')
+        if (taskId) onDrop(taskId, status)
+      }}
+    >
       <div className={s.kanbanColHeader}>
         <span className={s.kanbanColTitle}>{STATUS_LABEL[status]}</span>
         <span className={s.kanbanColCount}>{tasks.length}</span>
@@ -189,9 +215,13 @@ function KanbanColumn({
       </div>
       <div className={s.kanbanCards}>
         {tasks.map((t) => (
-          <KanbanCard key={t.id} task={t} onOpen={onOpen} onToggle={onToggle} />
+          <KanbanCard key={t.id} task={t} onOpen={onOpen} onToggle={onToggle} onDragStart={onDragStart} />
         ))}
-        {tasks.length === 0 && <p className={s.kanbanEmpty}>No tasks</p>}
+        {tasks.length === 0 && (
+          <p className={`${s.kanbanEmpty} ${dragOver ? s.kanbanEmptyDragOver : ''}`}>
+            {dragOver ? 'Drop here' : 'No tasks'}
+          </p>
+        )}
       </div>
     </div>
   )
@@ -276,6 +306,21 @@ export function TasksPage() {
     setModalStatus(status)
     setShowModal(true)
   }
+
+  const handleDrop = useCallback(async (taskId: string, toStatus: Status) => {
+    const task = allNotes.find((n) => n.id === taskId)
+    if (!task || task.metadata.status === toStatus) return
+    const updated: LocalNote = {
+      ...task,
+      metadata: { ...task.metadata, status: toStatus },
+      updatedAt: new Date().toISOString(),
+      syncStatus: 'pending',
+    }
+    await upsertNote(updated)
+    storeUpsert(updated)
+  }, [allNotes, storeUpsert])
+
+  const handleDragStart = useCallback((_id: string) => {}, [])
 
   const stats = useMemo(() => ({
     open: tasks.filter((t) => t.metadata.status === 'open').length,
@@ -376,10 +421,11 @@ export function TasksPage() {
               key={status}
               status={status}
               tasks={colTasks}
-              allNotes={allNotes}
               onOpen={handleOpen}
               onToggle={handleToggle}
               onAdd={handleAddForStatus}
+              onDrop={handleDrop}
+              onDragStart={handleDragStart}
             />
           ))}
         </div>
