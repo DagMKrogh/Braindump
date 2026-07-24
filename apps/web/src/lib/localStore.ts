@@ -76,6 +76,14 @@ export async function getAllTopics(): Promise<Topic[]> {
   return db.topics.toArray()
 }
 
+export async function saveTopic(topic: Topic): Promise<void> {
+  await db.topics.put(topic)
+}
+
+export async function deleteTopic(id: string): Promise<void> {
+  await db.topics.delete(id)
+}
+
 export async function getAllTags(): Promise<Tag[]> {
   return db.tags.toArray()
 }

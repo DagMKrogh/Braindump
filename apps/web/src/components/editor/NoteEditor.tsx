@@ -253,6 +253,27 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
     setExportOpen(false)
   }
 
+  const handleServerPdf = async () => {
+    setExportOpen(false)
+    const { accessToken } = (await import('../../stores/authStore')).useAuthStore.getState()
+    const res = await fetch(`${serverUrl}/notes/${note.id}/export/pdf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({}),
+    })
+    if (!res.ok) { alert('PDF export failed'); return }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${note.title || 'note'}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const handlePrint = () => {
     setExportOpen(false)
     setTimeout(() => window.print(), 100)
@@ -293,8 +314,13 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
               <button className={s.dropdownItem} onClick={handleMarkdownExport}>
                 Markdown (.md)
               </button>
+              {serverUrl && note.type !== 'secret' && (
+                <button className={s.dropdownItem} onClick={() => { void handleServerPdf() }}>
+                  Export PDF
+                </button>
+              )}
               <button className={s.dropdownItem} onClick={handlePrint}>
-                Print / PDF
+                Print / Save as PDF
               </button>
             </div>
           )}

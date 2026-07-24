@@ -83,6 +83,11 @@ export function CalendarPage() {
     return result.sort((a, b) => a.start.getTime() - b.start.getTime())
   }, [allNotes])
 
+  // Non-event notes that have a dateRef — shown as dot markers in month view
+  const dateRefNotes = useMemo<LocalNote[]>(() =>
+    allNotes.filter((n) => n.dateRef && !getType(n.type)?.isCalendarEvent),
+  [allNotes])
+
   const today = useMemo(() => new Date(), [])
 
   function moveCursor(delta: number) {
@@ -144,7 +149,7 @@ export function CalendarPage() {
       </div>
 
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        {view === 'month' && <MonthView cursor={cursor} events={events} today={today} onDayClick={goToDay} onEventClick={goToNote} />}
+        {view === 'month' && <MonthView cursor={cursor} events={events} dateRefNotes={dateRefNotes} today={today} onDayClick={goToDay} onEventClick={goToNote} />}
         {view === 'week' && <TimeGrid days={weekDays} events={events} today={today} onEventClick={goToNote} />}
         {view === 'day' && <TimeGrid days={[cursor]} events={events} today={today} onEventClick={goToNote} />}
       </div>
@@ -153,8 +158,8 @@ export function CalendarPage() {
 }
 
 // ---- Month View ----
-function MonthView({ cursor, events, today, onDayClick, onEventClick }: Readonly<{
-  cursor: Date; events: CalEvent[]; today: Date
+function MonthView({ cursor, events, dateRefNotes, today, onDayClick, onEventClick }: Readonly<{
+  cursor: Date; events: CalEvent[]; dateRefNotes: LocalNote[]; today: Date
   onDayClick: (d: Date) => void; onEventClick: (id: string) => void
 }>) {
   const gridStart = startOfWeek(startOfMonth(cursor))
@@ -181,6 +186,7 @@ function MonthView({ cursor, events, today, onDayClick, onEventClick }: Readonly
                 hasBorderRight={di < 6}
                 cursor={cursor}
                 events={events}
+                dateRefNotes={dateRefNotes}
                 today={today}
                 onDayClick={onDayClick}
                 onEventClick={onEventClick}
@@ -193,13 +199,14 @@ function MonthView({ cursor, events, today, onDayClick, onEventClick }: Readonly
   )
 }
 
-function MonthDayCell({ day, hasBorderRight, cursor, events, today, onDayClick, onEventClick }: Readonly<{
-  day: Date; hasBorderRight: boolean; cursor: Date; events: CalEvent[]; today: Date
+function MonthDayCell({ day, hasBorderRight, cursor, events, dateRefNotes, today, onDayClick, onEventClick }: Readonly<{
+  day: Date; hasBorderRight: boolean; cursor: Date; events: CalEvent[]; dateRefNotes: LocalNote[]; today: Date
   onDayClick: (d: Date) => void; onEventClick: (id: string) => void
 }>) {
   const isToday = sameDay(day, today)
   const inMonth = day.getMonth() === cursor.getMonth()
   const dayEvents = events.filter(e => sameDay(e.start, day))
+  const dayDateRefNotes = dateRefNotes.filter(n => n.dateRef && sameDay(new Date(n.dateRef), day))
   let dayNumberColor: string
   if (isToday) dayNumberColor = '#fff'
   else if (inMonth) dayNumberColor = 'var(--color-text)'
@@ -236,6 +243,24 @@ function MonthDayCell({ day, hasBorderRight, cursor, events, today, onDayClick, 
         <span style={{ fontSize: '0.6rem', color: 'var(--color-text-muted)', paddingLeft: '0.15rem' }}>
           +{dayEvents.length - 3} more
         </span>
+      )}
+      {/* dateRef dot markers for non-event notes */}
+      {dayDateRefNotes.length > 0 && (
+        <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', paddingLeft: '0.15rem', marginTop: 1 }}>
+          {dayDateRefNotes.slice(0, 5).map(n => {
+            const typeDef = getType(n.type)
+            return (
+              <span
+                key={n.id}
+                title={n.title || 'Untitled'}
+                style={{ width: 5, height: 5, borderRadius: '50%', background: typeDef?.color ?? '#6366f1', flexShrink: 0 }}
+              />
+            )
+          })}
+          {dayDateRefNotes.length > 5 && (
+            <span style={{ fontSize: '0.5rem', color: 'var(--color-text-muted)', lineHeight: '5px' }}>+{dayDateRefNotes.length - 5}</span>
+          )}
+        </div>
       )}
     </button>
   )

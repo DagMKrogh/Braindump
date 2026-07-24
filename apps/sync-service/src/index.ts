@@ -12,6 +12,7 @@ import { collectionsRoutes } from './routes/collections.js'
 import { tagsRoutes } from './routes/tags.js'
 import { exportRoutes } from './routes/export.js'
 import { noteTypeRoutes } from './routes/noteTypes.js'
+import { topicsRoutes } from './routes/topics.js'
 import { ingestRoutes } from './routes/ingest.js'
 
 const app = Fastify({ logger: true })
@@ -53,6 +54,7 @@ await app.register(collectionsRoutes, { prefix: '/collections' })
 await app.register(tagsRoutes, { prefix: '/tags' })
 await app.register(exportRoutes, { prefix: '/' })
 await app.register(noteTypeRoutes, { prefix: '/note-types' })
+await app.register(topicsRoutes, { prefix: '/topics' })
 await app.register(ingestRoutes, { prefix: '/ingest' })
 
 // Start

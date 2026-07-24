@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react'
 import { User, Link, Palette, Puzzle, Trash2, Plus, RefreshCw, LogOut, FolderOpen } from 'lucide-react'
-import type { CustomNoteTypeRecord, Collection } from '@braindump/shared'
+import type { CustomNoteTypeRecord, Collection, Topic } from '@braindump/shared'
 import { useUIStore } from '../stores/uiStore'
 import { useSyncStore } from '../stores/syncStore'
 import { useAuthStore } from '../stores/authStore'
 import { syncEngine } from '../lib/sync'
 import { initRegistry } from '../lib/noteTypeRegistry'
-import { getAllCustomNoteTypes, saveCustomNoteType, deleteCustomNoteType, getAllCollections } from '../lib/localStore'
+import { getAllCustomNoteTypes, saveCustomNoteType, deleteCustomNoteType, getAllCollections, getAllTopics, saveTopic, deleteTopic, db } from '../lib/localStore'
 import { useCollectionsStore } from '../stores/collectionsStore'
-import { db } from '../lib/localStore'
 import { apiClient } from '../lib/api'
 import s from '../styles/layout.module.css'
 
@@ -440,6 +439,109 @@ function CollectionsSection() {
   )
 }
 
+// ---- Topics ----
+function TopicsSection() {
+  const [topics, setTopics] = useState<Topic[]>([])
+  const [newName, setNewName] = useState('')
+  const [newColor, setNewColor] = useState('#6366f1')
+  const [showForm, setShowForm] = useState(false)
+  const { serverUrl } = useSyncStore()
+
+  useEffect(() => {
+    getAllTopics().then(setTopics).catch(console.error)
+  }, [])
+
+  async function handleCreate() {
+    const name = newName.trim()
+    if (!name) return
+    const now = new Date().toISOString()
+    const id = crypto.randomUUID()
+    let topic: Topic
+    if (serverUrl) {
+      try {
+        topic = await apiClient.post<Topic>('/topics', { name, color: newColor })
+      } catch {
+        topic = { id, userId: 'local', name, color: newColor, createdAt: now }
+      }
+    } else {
+      topic = { id, userId: 'local', name, color: newColor, createdAt: now }
+    }
+    await saveTopic(topic)
+    const updated = await getAllTopics()
+    setTopics(updated)
+    useCollectionsStore.getState().setTopics(updated)
+    setNewName('')
+    setNewColor('#6366f1')
+    setShowForm(false)
+  }
+
+  async function handleDelete(id: string) {
+    if (serverUrl) {
+      try { await apiClient.delete(`/topics/${id}`) } catch { /* ignore */ }
+    }
+    await deleteTopic(id)
+    const updated = await getAllTopics()
+    setTopics(updated)
+    useCollectionsStore.getState().setTopics(updated)
+  }
+
+  return (
+    <Section title="Topics" icon={<Palette size={15} />}>
+      {topics.length === 0 && !showForm && (
+        <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+          No topics yet. Topics are high-level groupings above collections.
+        </p>
+      )}
+
+      {topics.map((t) => (
+        <div key={t.id} style={{
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+          padding: '0.5rem 0.75rem', marginBottom: '0.4rem',
+          background: 'var(--color-surface)', borderRadius: 'var(--radius)',
+          border: '1px solid var(--color-border)',
+        }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: t.color ?? '#6366f1', flexShrink: 0 }} />
+          <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: 500 }}>{t.name}</span>
+          <button
+            className={`${s.btn} ${s.btnGhost} ${s.btnIcon}`}
+            onClick={() => { void handleDelete(t.id) }}
+            title="Delete topic"
+            style={{ color: 'var(--color-error)' }}
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      ))}
+
+      {showForm ? (
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', alignItems: 'center' }}>
+          <input
+            autoFocus
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') void handleCreate(); if (e.key === 'Escape') { setShowForm(false); setNewName('') } }}
+            placeholder="Topic name"
+            className={s.metaInput}
+            style={{ flex: 1 }}
+          />
+          <input
+            type="color"
+            value={newColor}
+            onChange={(e) => setNewColor(e.target.value)}
+            style={{ width: 36, height: 32, borderRadius: 4, border: '1px solid var(--color-border)', cursor: 'pointer', padding: 2 }}
+          />
+          <button className={`${s.btn} ${s.btnPrimary}`} onClick={() => { void handleCreate() }} disabled={!newName.trim()}>Create</button>
+          <button className={`${s.btn} ${s.btnGhost}`} onClick={() => { setShowForm(false); setNewName('') }}>Cancel</button>
+        </div>
+      ) : (
+        <button className={`${s.btn} ${s.btnGhost}`} onClick={() => setShowForm(true)} style={{ marginTop: '0.25rem' }}>
+          <Plus size={13} /> New topic
+        </button>
+      )}
+    </Section>
+  )
+}
+
 // ---- Main ----
 export function SettingsPage() {
   return (
@@ -447,6 +549,7 @@ export function SettingsPage() {
       <h1 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '2rem' }}>Settings</h1>
       <AppearanceSection />
       <SyncSection />
+      <TopicsSection />
       <CollectionsSection />
       <CustomTypesSection />
     </div>

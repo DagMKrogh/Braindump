@@ -13,7 +13,6 @@
   "dependencies": {
     "@braindump/shared": "workspace:*",
     "@tiptap/core": "^2.7.0",
-    "@tiptap/suggestion": "^2.7.0",
     "@tiptap/extension-code-block-lowlight": "^2.7.0",
     "@tiptap/extension-link": "^2.7.0",
     "@tiptap/extension-placeholder": "^2.7.0",
@@ -25,17 +24,19 @@
     "@tiptap/extension-task-list": "^2.7.0",
     "@tiptap/react": "^2.7.0",
     "@tiptap/starter-kit": "^2.7.0",
+    "@tiptap/suggestion": "^2.7.0",
     "dexie": "^4.0.0",
     "flexsearch": "^0.7.43",
     "lowlight": "^3.0.0",
     "lucide-react": "^0.447.0",
+    "prosemirror-state": "^1.4.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.0",
-    "prosemirror-state": "^1.4.3",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
