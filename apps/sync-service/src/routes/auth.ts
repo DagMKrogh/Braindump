@@ -30,58 +30,69 @@ type GoogleOAuth2 = {
   getAccessTokenFromAuthorizationCodeFlow: (req: unknown) => Promise<{ token: { access_token: string } }>
 }
 
+const googleEnabled = Boolean(config.googleClientId && config.googleClientSecret && config.googleCallbackUrl)
+
 export const authRoutes: FastifyPluginAsync = async (app) => {
-  await app.register(oauth2Plugin, {
-    name: 'googleOAuth2',
-    scope: ['openid', 'email', 'profile'],
-    credentials: {
-      client: { id: config.googleClientId, secret: config.googleClientSecret },
-      auth: oauth2Plugin.GOOGLE_CONFIGURATION,
-    },
-    startRedirectPath: '/google',
-    callbackUri: config.googleCallbackUrl,
-  })
+  if (googleEnabled) {
+    await app.register(oauth2Plugin, {
+      name: 'googleOAuth2',
+      scope: ['openid', 'email', 'profile'],
+      credentials: {
+        client: { id: config.googleClientId, secret: config.googleClientSecret },
+        auth: oauth2Plugin.GOOGLE_CONFIGURATION,
+      },
+      startRedirectPath: '/google',
+      callbackUri: config.googleCallbackUrl,
+    })
 
-  // GET /auth/google/callback
-  app.get('/google/callback', async (request, reply) => {
-    const { googleOAuth2 } = app as unknown as { googleOAuth2: GoogleOAuth2 }
-    const tokenData = await googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
-    const googleUser = await fetchGoogleUser(tokenData.token.access_token)
+    // GET /auth/google/callback
+    app.get('/google/callback', async (request, reply) => {
+      const { googleOAuth2 } = app as unknown as { googleOAuth2: GoogleOAuth2 }
+      const tokenData = await googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+      const googleUser = await fetchGoogleUser(tokenData.token.access_token)
 
-    // Upsert user
-    const existing = await db.query.users.findFirst({ where: eq(users.googleId, googleUser.id) })
-    let userId: string
-    if (existing) {
-      await db.update(users)
-        .set({ name: googleUser.name, avatarUrl: googleUser.picture ?? null, updatedAt: new Date() })
-        .where(eq(users.id, existing.id))
-      userId = existing.id
-    } else {
-      const [created] = await db.insert(users).values({
-        email: googleUser.email,
-        name: googleUser.name,
-        avatarUrl: googleUser.picture ?? null,
-        googleId: googleUser.id,
-      }).returning({ id: users.id })
-      userId = created!.id
-    }
+      // Upsert user
+      const existing = await db.query.users.findFirst({ where: eq(users.googleId, googleUser.id) })
+      let userId: string
+      if (existing) {
+        await db.update(users)
+          .set({ name: googleUser.name, avatarUrl: googleUser.picture ?? null, updatedAt: new Date() })
+          .where(eq(users.id, existing.id))
+        userId = existing.id
+      } else {
+        const [created] = await db.insert(users).values({
+          email: googleUser.email,
+          name: googleUser.name,
+          avatarUrl: googleUser.picture ?? null,
+          googleId: googleUser.id,
+        }).returning({ id: users.id })
+        userId = created!.id
+      }
 
-    // Issue access token (short-lived)
-    const accessToken = app.jwt.sign(
-      { sub: userId, email: googleUser.email },
-      { expiresIn: config.jwtAccessExpiry }
-    )
+      // Issue access token (short-lived)
+      const accessToken = app.jwt.sign(
+        { sub: userId, email: googleUser.email },
+        { expiresIn: config.jwtAccessExpiry }
+      )
 
-    // Issue + store refresh token
-    const refreshToken = `${crypto.randomUUID()}-${crypto.randomUUID()}`
-    const tokenHash = await hashToken(refreshToken)
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    await db.insert(refreshTokens).values({ userId, tokenHash, expiresAt })
+      // Issue + store refresh token
+      const refreshToken = `${crypto.randomUUID()}-${crypto.randomUUID()}`
+      const tokenHash = await hashToken(refreshToken)
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      await db.insert(refreshTokens).values({ userId, tokenHash, expiresAt })
 
-    // Redirect to frontend with tokens in hash (consumed by AuthCallbackPage)
-    const userParam = encodeURIComponent(JSON.stringify({ id: userId, email: googleUser.email, name: googleUser.name, avatarUrl: googleUser.picture ?? null }))
-    return reply.redirect(`${config.frontendUrl}/auth/callback#token=${accessToken}&refreshToken=${refreshToken}&user=${userParam}`)
-  })
+      // Redirect to frontend with tokens in hash (consumed by AuthCallbackPage)
+      const userParam = encodeURIComponent(JSON.stringify({ id: userId, email: googleUser.email, name: googleUser.name, avatarUrl: googleUser.picture ?? null }))
+      return reply.redirect(`${config.frontendUrl}/auth/callback#token=${accessToken}&refreshToken=${refreshToken}&user=${userParam}`)
+    })
+  } else {
+    app.get('/google', async (_request, reply) => {
+      return reply.status(503).send({ error: 'Google OAuth is not configured on this server' })
+    })
+    app.get('/google/callback', async (_request, reply) => {
+      return reply.status(503).send({ error: 'Google OAuth is not configured on this server' })
+    })
+  }
 
   // POST /auth/refresh
   app.post('/refresh', async (request, reply) => {
