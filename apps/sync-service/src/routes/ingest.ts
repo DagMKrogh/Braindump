@@ -4,6 +4,7 @@ import { db } from '../plugins/db.js'
 import { notes, users } from '../db/schema.js'
 import { config } from '../config.js'
 import { markdownToTiptap } from '../lib/markdownToTiptap.js'
+import { broadcast } from '../plugins/wsHub.js'
 
 /**
  * POST /ingest
@@ -103,6 +104,9 @@ export const ingestRoutes: FastifyPluginAsync = async (app) => {
       createdAt: now,
       updatedAt: now,
     }).returning()
+
+    // Notify connected clients so they pick up the new note in real time
+    broadcast(userId, { type: 'note:created', payload: note })
 
     return reply.status(201).send(note)
   })

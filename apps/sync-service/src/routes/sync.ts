@@ -114,8 +114,8 @@ export const syncRoutes: FastifyPluginAsync = async (app) => {
       })
       results.push(n.id)
 
-      // Broadcast to other connected clients
-      broadcast(uid, { type: 'note:updated', payload: { id: n.id } })
+      // Broadcast full note to other connected clients
+      broadcast(uid, { type: 'note:updated', payload: n })
     }
 
     return { synced: results.length, ids: results }
