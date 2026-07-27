@@ -94,6 +94,12 @@ function SyncSection() {
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
+  const [serverVersion, setServerVersion] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!serverUrl) { setServerVersion(null); return }
+    apiFetch<{ version: string }>(serverUrl, '/health').then(r => setServerVersion(r.version)).catch(() => setServerVersion(null))
+  }, [serverUrl])
 
   useEffect(() => {
     if (!serverUrl || isAuthenticated) return
@@ -200,6 +206,11 @@ function SyncSection() {
               {lastSynced && (
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                   · {new Date(lastSynced).toLocaleString()}
+                </span>
+              )}
+              {serverVersion && (
+                <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', background: 'var(--color-surface)', padding: '0.1rem 0.4rem', borderRadius: 4 }}>
+                  v{serverVersion}
                 </span>
               )}
               <button

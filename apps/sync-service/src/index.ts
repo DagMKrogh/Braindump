@@ -1,3 +1,4 @@
+import pkg from '../package.json' with { type: 'json' }
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
@@ -43,7 +44,7 @@ app.decorate('authenticate', async function (request, reply) {
 })
 
 // Health check (unauthenticated — used by sync engine polling)
-app.get('/health', async () => ({ ok: true, ts: new Date().toISOString() }))
+app.get('/health', async () => ({ ok: true, version: pkg.version, ts: new Date().toISOString() }))
 
 // Routes
 await app.register(authRoutes, { prefix: '/auth' })
