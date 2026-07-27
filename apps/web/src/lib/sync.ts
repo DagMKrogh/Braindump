@@ -66,7 +66,7 @@ class SyncEngine {
 
   private openWebSocket(serverUrl: string) {
     const wsUrl = serverUrl.replace(/^http/, 'ws') + '/sync/ws'
-    const { accessToken } = useNotesStore.getState() as unknown as { accessToken?: string }
+    const { accessToken } = useAuthStore.getState()
     this.ws = new WebSocket(`${wsUrl}?token=${accessToken ?? ''}`)
 
     this.ws.onmessage = (event: MessageEvent) => {
