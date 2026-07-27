@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import type { Note } from '@braindump/shared'
 import { eq, and, gt, isNull } from 'drizzle-orm'
 import { db } from '../plugins/db.js'
 import { notes, collections, topics, customNoteTypes } from '../db/schema.js'
@@ -115,7 +116,7 @@ export const syncRoutes: FastifyPluginAsync = async (app) => {
       results.push(n.id)
 
       // Broadcast full note to other connected clients
-      broadcast(uid, { type: 'note:updated', payload: n })
+      broadcast(uid, { type: 'note:updated', payload: n as unknown as Note })
     }
 
     return { synced: results.length, ids: results }

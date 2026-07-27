@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import type { Note } from '@braindump/shared'
 import { eq } from 'drizzle-orm'
 import { db } from '../plugins/db.js'
 import { notes, users } from '../db/schema.js'
@@ -106,7 +107,7 @@ export const ingestRoutes: FastifyPluginAsync = async (app) => {
     }).returning()
 
     // Notify connected clients so they pick up the new note in real time
-    broadcast(userId, { type: 'note:created', payload: note })
+    if (note) broadcast(userId, { type: 'note:created', payload: note as unknown as Note })
 
     return reply.status(201).send(note)
   })
