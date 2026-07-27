@@ -188,15 +188,18 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
     },
   })
 
-  // When active note changes, load its content
+  // When active note changes or peer updates arrive, load the new content.
+  // We compare JSON to avoid clobbering the editor while the user is typing.
   useEffect(() => {
     if (!editor) return
+    // Skip if a local save is pending (user is actively editing)
+    if (saveTimer.current) return
     const targetContent = isSecret ? { type: 'doc', content: [{ type: 'paragraph' }] } : note.content
     const currentJson = JSON.stringify(editor.getJSON())
     if (currentJson !== JSON.stringify(targetContent)) {
       editor.commands.setContent(targetContent as object, false)
     }
-  }, [note.id, editor]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [note.id, note.updatedAt, editor]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-decrypt when master password is already in sessionStorage (same-session note switch)
   useEffect(() => {

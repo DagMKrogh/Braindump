@@ -13,6 +13,7 @@ import { useCollectionsStore } from '../stores/collectionsStore'
 import { useAuthStore } from '../stores/authStore'
 
 const HEALTH_POLL_INTERVAL_MS = 15_000
+const FLUSH_INTERVAL_MS = 10_000
 const DEVICE_ID_KEY = 'braindump-device-id'
 
 function getDeviceId(): string {
@@ -27,6 +28,7 @@ function getDeviceId(): string {
 class SyncEngine {
   private ws: WebSocket | null = null
   private pollTimer: ReturnType<typeof setInterval> | null = null
+  private flushTimer: ReturnType<typeof setInterval> | null = null
   private running = false
 
   start() {
@@ -41,6 +43,7 @@ class SyncEngine {
     this.running = false
     this.ws?.close()
     if (this.pollTimer) clearInterval(this.pollTimer)
+    if (this.flushTimer) clearInterval(this.flushTimer)
   }
 
   private async connect() {
@@ -51,6 +54,7 @@ class SyncEngine {
       await this.pullDelta()
       await this.flushPending()
       this.openWebSocket(serverUrl)
+      this.startFlushInterval()
       useSyncStore.getState().setMode('synced')
       useSyncStore.getState().setError(null)
     } catch {
@@ -136,6 +140,13 @@ class SyncEngine {
     const synced = pending.map((n) => ({ ...n, syncStatus: 'synced' as const, localOnly: false }))
     await upsertNotes(synced)
     useSyncStore.getState().setPendingCount(0)
+  }
+
+  private startFlushInterval() {
+    if (this.flushTimer) return
+    this.flushTimer = setInterval(() => {
+      void this.flushPending()
+    }, FLUSH_INTERVAL_MS)
   }
 
   private startHealthPoll() {
