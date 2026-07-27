@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { User, Link, Palette, Puzzle, Trash2, Plus, RefreshCw, LogOut, FolderOpen } from 'lucide-react'
+import { User, Link, Palette, Puzzle, Trash2, Plus, RefreshCw, LogOut, FolderOpen, UserPlus, Users } from 'lucide-react'
 import type { CustomNoteTypeRecord, Collection, Topic } from '@braindump/shared'
 import { useUIStore } from '../stores/uiStore'
 import { useSyncStore } from '../stores/syncStore'
@@ -8,7 +8,7 @@ import { syncEngine } from '../lib/sync'
 import { initRegistry } from '../lib/noteTypeRegistry'
 import { getAllCustomNoteTypes, saveCustomNoteType, deleteCustomNoteType, getAllCollections, saveCollection, deleteCollection, getAllTopics, saveTopic, deleteTopic } from '../lib/localStore'
 import { useCollectionsStore } from '../stores/collectionsStore'
-import { apiClient } from '../lib/api'
+import { apiClient, apiFetch } from '../lib/api'
 import s from '../styles/layout.module.css'
 
 const ICON_OPTIONS = [
@@ -76,12 +76,29 @@ function AppearanceSection() {
   )
 }
 
+interface ServerUser { id: string; name: string; email: string; avatarUrl: string | null }
+interface AuthResponse { accessToken: string; refreshToken: string; user: ServerUser }
+type AuthPanel = 'pick' | 'login' | 'register'
+
 // ---- Sync & Account ----
 function SyncSection() {
   const { serverUrl, setServerUrl, lastSynced, mode, status } = useSyncStore()
-  const { user, isAuthenticated, clearAuth } = useAuthStore()
+  const { user, isAuthenticated, setAuth, clearAuth } = useAuthStore()
   const [urlInput, setUrlInput] = useState(serverUrl ?? '')
   const [syncing, setSyncing] = useState(false)
+  const [panel, setPanel] = useState<AuthPanel>('pick')
+  const [serverUsers, setServerUsers] = useState<ServerUser[]>([])
+  const [selectedUser, setSelectedUser] = useState<ServerUser | null>(null)
+  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
+
+  useEffect(() => {
+    if (!serverUrl || isAuthenticated) return
+    apiFetch<ServerUser[]>(serverUrl, '/auth/users').then(setServerUsers).catch(() => setServerUsers([]))
+  }, [serverUrl, isAuthenticated])
 
   const statusLabel = status === 'syncing' ? 'Syncing…'
     : mode === 'synced' ? 'Synced'
@@ -105,17 +122,55 @@ function SyncSection() {
     setSyncing(false)
   }
 
-  function handleSignIn() {
-    if (!serverUrl) return
-    window.location.href = `${serverUrl}/auth/google`
-  }
-
   function handleSignOut() {
     clearAuth()
     syncEngine.stop()
-    setServerUrl(null)
-    setUrlInput('')
+    setServerUsers([])
+    setPassword('')
+    setAuthError('')
+    setPanel('pick')
   }
+
+  function handlePickUser(u: ServerUser) {
+    setSelectedUser(u)
+    setEmail(u.email)
+    setName('')
+    setPassword('')
+    setAuthError('')
+    setPanel('login')
+  }
+
+  async function handleLogin() {
+    if (!serverUrl) return
+    setAuthLoading(true)
+    setAuthError('')
+    try {
+      const res = await apiFetch<AuthResponse>(serverUrl, '/auth/login', { email, password })
+      setAuth({ id: res.user.id, email: res.user.email, name: res.user.name, avatarUrl: res.user.avatarUrl ?? undefined }, res.accessToken, res.refreshToken)
+      setPassword('')
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : 'Login failed')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  async function handleRegister() {
+    if (!serverUrl) return
+    setAuthLoading(true)
+    setAuthError('')
+    try {
+      const res = await apiFetch<AuthResponse>(serverUrl, '/auth/register', { email, name, password })
+      setAuth({ id: res.user.id, email: res.user.email, name: res.user.name, avatarUrl: res.user.avatarUrl ?? undefined }, res.accessToken, res.refreshToken)
+      setPassword('')
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : 'Registration failed')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  const inputStyle = { ...({} as React.CSSProperties), width: '100%' }
 
   return (
     <Section title="Sync & Account" icon={<Link size={15} />}>
@@ -125,7 +180,7 @@ function SyncSection() {
             value={urlInput}
             onChange={e => setUrlInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSaveUrl()}
-            placeholder="https://sync.example.com:3001"
+            placeholder="http://192.168.1.x:3001"
             className={s.metaInput}
             style={{ width: 280 }}
           />
@@ -158,8 +213,8 @@ function SyncSection() {
             </div>
           </Row>
 
-          <Row label="Account" hint={isAuthenticated ? undefined : 'Sign in with Google to enable cross-device sync'}>
-            {isAuthenticated && user ? (
+          {isAuthenticated && user ? (
+            <Row label="Account">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{user.name}</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{user.email}</span>
@@ -167,12 +222,87 @@ function SyncSection() {
                   <LogOut size={12} /> Sign out
                 </button>
               </div>
-            ) : (
-              <button className={`${s.btn} ${s.btnPrimary}`} onClick={handleSignIn}>
-                <User size={13} /> Sign in with Google
-              </button>
-            )}
-          </Row>
+            </Row>
+          ) : (
+            <div style={{ marginBottom: '0.875rem', paddingBottom: '0.875rem', borderBottom: '1px solid var(--color-border)' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text)', marginBottom: '0.75rem' }}>Account</div>
+
+              {/* Profile picker */}
+              {panel === 'pick' && (
+                <div>
+                  {serverUsers.length > 0 && (
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem' }}>
+                        <Users size={11} style={{ display: 'inline', marginRight: 4 }} />Profiles on this server
+                      </div>
+                      {serverUsers.map(u => (
+                        <button
+                          key={u.id}
+                          className={`${s.btn} ${s.btnGhost}`}
+                          onClick={() => handlePickUser(u)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', justifyContent: 'flex-start', marginBottom: '0.3rem', padding: '0.4rem 0.6rem' }}
+                        >
+                          <User size={13} />
+                          <span style={{ fontWeight: 500 }}>{u.name}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{u.email}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {serverUsers.length === 0 && (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', alignSelf: 'center', marginRight: '0.25rem' }}>No profiles yet.</span>
+                    )}
+                    <button className={`${s.btn} ${s.btnGhost}`} onClick={() => { setEmail(''); setName(''); setPassword(''); setAuthError(''); setPanel('register') }}>
+                      <UserPlus size={13} /> New profile
+                    </button>
+                    {serverUsers.length > 0 && (
+                      <button className={`${s.btn} ${s.btnGhost}`} onClick={() => { setSelectedUser(null); setEmail(''); setPassword(''); setAuthError(''); setPanel('login') }}>
+                        <User size={13} /> Sign in
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Login form */}
+              {panel === 'login' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxWidth: 320 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                    {selectedUser ? `Signing in as ${selectedUser.name}` : 'Sign in'}
+                  </div>
+                  {!selectedUser && (
+                    <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className={s.metaInput} style={inputStyle} />
+                  )}
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && void handleLogin()} placeholder="Password" className={s.metaInput} style={inputStyle} autoFocus />
+                  {authError && <span style={{ fontSize: '0.75rem', color: 'var(--color-error)' }}>{authError}</span>}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className={`${s.btn} ${s.btnPrimary}`} onClick={() => { void handleLogin() }} disabled={authLoading || !password}>
+                      {authLoading ? 'Signing in…' : 'Sign in'}
+                    </button>
+                    <button className={`${s.btn} ${s.btnGhost}`} onClick={() => { setPanel('pick'); setAuthError('') }}>Back</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Register form */}
+              {panel === 'register' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxWidth: 320 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Create a new profile</div>
+                  <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" className={s.metaInput} style={inputStyle} autoFocus />
+                  <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className={s.metaInput} style={inputStyle} />
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && void handleRegister()} placeholder="Password" className={s.metaInput} style={inputStyle} />
+                  {authError && <span style={{ fontSize: '0.75rem', color: 'var(--color-error)' }}>{authError}</span>}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className={`${s.btn} ${s.btnPrimary}`} onClick={() => { void handleRegister() }} disabled={authLoading || !name || !email || !password}>
+                      {authLoading ? 'Creating…' : 'Create profile'}
+                    </button>
+                    <button className={`${s.btn} ${s.btnGhost}`} onClick={() => { setPanel('pick'); setAuthError('') }}>Back</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </Section>
