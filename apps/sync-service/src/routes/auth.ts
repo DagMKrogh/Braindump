@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import type { FastifyPluginAsync } from 'fastify'
 import oauth2Plugin from '@fastify/oauth2'
 import { eq } from 'drizzle-orm'
@@ -24,6 +25,26 @@ async function hashToken(token: string): Promise<string> {
   const bytes = new TextEncoder().encode(token)
   const buf = await crypto.subtle.digest('SHA-256', bytes)
   return Buffer.from(buf).toString('hex')
+}
+
+async function hashPassword(password: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const salt = crypto.randomBytes(16).toString('hex')
+    crypto.scrypt(password, salt, 64, (err, derived) => {
+      if (err) reject(err)
+      else resolve(`${salt}:${derived.toString('hex')}`)
+    })
+  })
+}
+
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const [salt, hash] = stored.split(':') as [string, string]
+    crypto.scrypt(password, salt, 64, (err, derived) => {
+      if (err) reject(err)
+      else resolve(derived.toString('hex') === hash)
+    })
+  })
 }
 
 type GoogleOAuth2 = {
@@ -130,4 +151,61 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     if (!user) throw new Error('User not found')
     return { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl }
   })
+
+  // POST /auth/register — create a local (non-Google) user
+  app.post('/register', async (request, reply) => {
+    const { email, name, password } = request.body as { email: string; name: string; password: string }
+    if (!email || !name || !password) {
+      return reply.status(400).send({ error: 'email, name and password are required' })
+    }
+    const existing = await db.query.users.findFirst({ where: eq(users.email, email) })
+    if (existing) return reply.status(409).send({ error: 'Email already registered' })
+
+    const passwordHash = await hashPassword(password)
+    const [user] = await db.insert(users).values({ email, name, passwordHash }).returning()
+
+    const { accessToken, refreshToken } = await issueTokens(app, user!.id, email)
+    return reply.status(201).send({
+      accessToken,
+      refreshToken,
+      user: { id: user!.id, email: user!.email, name: user!.name, avatarUrl: null },
+    })
+  })
+
+  // POST /auth/login — local password login
+  app.post('/login', async (request, reply) => {
+    const { email, password } = request.body as { email: string; password: string }
+    if (!email || !password) return reply.status(400).send({ error: 'email and password are required' })
+
+    const user = await db.query.users.findFirst({ where: eq(users.email, email) })
+    if (!user || !user.passwordHash) return reply.status(401).send({ error: 'Invalid credentials' })
+
+    const valid = await verifyPassword(password, user.passwordHash)
+    if (!valid) return reply.status(401).send({ error: 'Invalid credentials' })
+
+    const { accessToken, refreshToken } = await issueTokens(app, user.id, email)
+    return reply.send({
+      accessToken,
+      refreshToken,
+      user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
+    })
+  })
+
+  // GET /auth/users — list all users (for profile picker; local network only)
+  app.get('/users', async () => {
+    return db.select({ id: users.id, email: users.email, name: users.name, avatarUrl: users.avatarUrl })
+      .from(users)
+  })
+}
+
+async function issueTokens(app: { jwt: { sign: (payload: object, opts: object) => string } }, userId: string, email: string) {
+  const accessToken = app.jwt.sign(
+    { sub: userId, email },
+    { expiresIn: config.jwtAccessExpiry }
+  )
+  const refreshToken = `${crypto.randomUUID()}-${crypto.randomUUID()}`
+  const tokenHash = await hashToken(refreshToken)
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  await db.insert(refreshTokens).values({ userId, tokenHash, expiresAt })
+  return { accessToken, refreshToken }
 }
