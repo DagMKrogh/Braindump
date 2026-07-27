@@ -29,9 +29,6 @@ RUN DATABASE_URL=postgresql://x:x@localhost/x \
 # Compile TypeScript
 RUN pnpm --filter @braindump/sync-service build
 
-# Install Puppeteer Chrome for PDF export
-RUN npx puppeteer browsers install chrome
-
 # ── Production ────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS production
 WORKDIR /app
@@ -39,10 +36,12 @@ WORKDIR /app
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV NODE_ENV=production
+# Use Alpine system Chromium instead of Puppeteer's downloaded Chrome
 ENV PUPPETEER_SKIP_DOWNLOAD=true
-ENV PUPPETEER_CACHE_DIR=/root/.cache/puppeteer
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
-RUN corepack enable
+RUN corepack enable && \
+    apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont
 
 # Install production deps only
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
@@ -51,11 +50,10 @@ COPY apps/sync-service/package.json ./apps/sync-service/
 
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy compiled output + migration SQL + Puppeteer browser
+# Copy compiled output + migration SQL
 COPY --from=builder /app/packages/shared/dist       ./packages/shared/dist
 COPY --from=builder /app/apps/sync-service/dist     ./apps/sync-service/dist
 COPY --from=builder /app/apps/sync-service/drizzle  ./apps/sync-service/drizzle
-COPY --from=builder /root/.cache/puppeteer          /root/.cache/puppeteer
 
 # Entrypoint: runs DB migrations then starts the server
 COPY docker/sync-service/docker-entrypoint.sh /entrypoint.sh
