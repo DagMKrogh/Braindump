@@ -346,6 +346,18 @@ wss.on('connection', (ws) => {
   // Send a welcome event so the client knows the bridge is live
   ws.send(JSON.stringify({ type: 'bridge:connected', payload: { port: PORT } }))
 
+  // Relay client messages to all other clients (peer sync)
+  ws.on('message', (data: Buffer) => {
+    try {
+      const msg = JSON.parse(data.toString()) as { type?: string; payload?: unknown }
+      if (typeof msg.type !== 'string') return
+      const relay = JSON.stringify(msg)
+      for (const peer of clients) {
+        if (peer !== ws && peer.readyState === 1) peer.send(relay)
+      }
+    } catch { /* ignore invalid messages */ }
+  })
+
   ws.on('close', () => {
     clients.delete(ws)
     console.log(`[bridge] client disconnected (${clients.size} total)`)

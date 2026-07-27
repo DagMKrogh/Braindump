@@ -18,7 +18,7 @@
  */
 
 import type { LocalNote } from '@braindump/shared'
-import { upsertNote } from './localStore'
+import { upsertNote, softDeleteNote } from './localStore'
 import { useNotesStore } from '../stores/notesStore'
 
 export type BridgeEvent = { type: string; payload: unknown }
@@ -63,6 +63,13 @@ class LocalBridgeClient {
     }
     this.ws?.close()
     this.ws = null
+  }
+
+  /** Send an event to the bridge server for relay to other clients. */
+  send(type: string, payload: unknown) {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type, payload }))
+    }
   }
 
   // ── Internal ───────────────────────────────────────────────────────────
@@ -126,4 +133,18 @@ localBridge.on<LocalNote>('note:ingest', async (note) => {
   await upsertNote(note)
   useNotesStore.getState().upsertNote(note)
   console.debug('[bridge] note ingested:', note.id, note.title)
+})
+
+// ── Peer sync: note created/updated in another client ─────────────────────
+
+localBridge.on<LocalNote>('note:upsert', async (note) => {
+  await upsertNote(note)
+  useNotesStore.getState().upsertNote(note)
+  console.debug('[bridge] note synced:', note.id, note.title)
+})
+
+localBridge.on<{ id: string }>('note:delete', async ({ id }) => {
+  await softDeleteNote(id)
+  useNotesStore.getState().removeNote(id)
+  console.debug('[bridge] note deleted:', id)
 })

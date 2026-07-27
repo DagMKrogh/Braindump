@@ -3,6 +3,7 @@ import type { NoteType } from '@braindump/shared'
 import { useNotesStore } from '../stores/notesStore'
 import { getAllNotes, upsertNote, softDeleteNote, getNoteById } from '../lib/localStore'
 import { getType } from '../lib/noteTypeRegistry'
+import { localBridge } from '../lib/localBridge'
 
 export function useNotes() {
   const { notes, activeNoteId, setNotes, upsertNote: storeUpsert, removeNote, setActiveNoteId, setLoading } = useNotesStore()
@@ -43,6 +44,7 @@ export function useNotes() {
     await upsertNote(note)
     storeUpsert(note)
     setActiveNoteId(id)
+    localBridge.send('note:upsert', note)
     return id
   }, [storeUpsert, setActiveNoteId])
 
@@ -57,11 +59,13 @@ export function useNotes() {
     }
     await upsertNote(updated)
     storeUpsert(updated)
+    localBridge.send('note:upsert', updated)
   }, [storeUpsert])
 
   const deleteNote = useCallback(async (id: string) => {
     await softDeleteNote(id)
     removeNote(id)
+    localBridge.send('note:delete', { id })
     if (activeNoteId === id) setActiveNoteId(null)
   }, [removeNote, activeNoteId, setActiveNoteId])
 
