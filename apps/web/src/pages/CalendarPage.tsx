@@ -33,7 +33,9 @@ function addDays(d: Date, n: number) {
 function sameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
-function dayKey(d: Date) { return d.toISOString().slice(0, 10) }
+function dayKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 // ---- Event parsing ----
 function getMetaStr(meta: Record<string, unknown>, field: string | undefined): string | null {
@@ -93,7 +95,7 @@ export function CalendarPage() {
     const map = new Map<string, LocalNote[]>()
     for (const note of allNotes) {
       if (!note.createdAt) continue
-      const key = note.createdAt.slice(0, 10) // YYYY-MM-DD
+      const key = dayKey(new Date(note.createdAt))
       const arr = map.get(key)
       if (arr) arr.push(note)
       else map.set(key, [note])
