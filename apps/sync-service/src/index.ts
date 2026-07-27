@@ -19,7 +19,7 @@ const app = Fastify({ logger: true })
 
 // Plugins
 await app.register(cors, {
-  origin: config.allowedOrigin,
+  origin: config.allowedOrigins.length === 1 ? config.allowedOrigins[0]! : config.allowedOrigins,
   credentials: true,
 })
 

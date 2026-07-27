@@ -10,6 +10,7 @@ import { initRegistry } from './noteTypeRegistry'
 import { useSyncStore } from '../stores/syncStore'
 import { useNotesStore } from '../stores/notesStore'
 import { useCollectionsStore } from '../stores/collectionsStore'
+import { useAuthStore } from '../stores/authStore'
 
 const HEALTH_POLL_INTERVAL_MS = 15_000
 const DEVICE_ID_KEY = 'braindump-device-id'
@@ -31,6 +32,7 @@ class SyncEngine {
   start() {
     const { serverUrl } = useSyncStore.getState()
     if (!serverUrl) return // local-only mode
+    if (!useAuthStore.getState().isAuthenticated) return // no token yet
     this.running = true
     void this.connect()
   }
@@ -52,6 +54,7 @@ class SyncEngine {
       useSyncStore.getState().setMode('synced')
       useSyncStore.getState().setError(null)
     } catch {
+      useSyncStore.getState().setStatus('idle')
       useSyncStore.getState().setMode('offline')
       this.startHealthPoll()
     }

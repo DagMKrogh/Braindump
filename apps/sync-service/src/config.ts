@@ -18,7 +18,7 @@ export const config = {
   googleClientId: optional('GOOGLE_CLIENT_ID', ''),
   googleClientSecret: optional('GOOGLE_CLIENT_SECRET', ''),
   googleCallbackUrl: optional('GOOGLE_CALLBACK_URL', ''),
-  allowedOrigin: optional('ALLOWED_ORIGIN', 'http://localhost:5173'),
+  allowedOrigins: optional('ALLOWED_ORIGIN', 'http://localhost:5173').split(',').map(s => s.trim()),
   frontendUrl: optional('FRONTEND_URL', 'http://localhost:5173'),
   nodeEnv: optional('NODE_ENV', 'development'),
   ingestApiKey: optional('INGEST_API_KEY', ''),
