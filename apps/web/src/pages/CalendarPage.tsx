@@ -88,6 +88,19 @@ export function CalendarPage() {
     allNotes.filter((n) => n.dateRef && !getType(n.type)?.isCalendarEvent),
   [allNotes])
 
+  // All non-deleted notes grouped by creation date — shown in calendar cells
+  const createdNotesByDay = useMemo(() => {
+    const map = new Map<string, LocalNote[]>()
+    for (const note of allNotes) {
+      if (!note.createdAt) continue
+      const key = note.createdAt.slice(0, 10) // YYYY-MM-DD
+      const arr = map.get(key)
+      if (arr) arr.push(note)
+      else map.set(key, [note])
+    }
+    return map
+  }, [allNotes])
+
   const today = useMemo(() => new Date(), [])
 
   function moveCursor(delta: number) {
@@ -149,17 +162,17 @@ export function CalendarPage() {
       </div>
 
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        {view === 'month' && <MonthView cursor={cursor} events={events} dateRefNotes={dateRefNotes} today={today} onDayClick={goToDay} onEventClick={goToNote} />}
-        {view === 'week' && <TimeGrid days={weekDays} events={events} today={today} onEventClick={goToNote} />}
-        {view === 'day' && <TimeGrid days={[cursor]} events={events} today={today} onEventClick={goToNote} />}
+        {view === 'month' && <MonthView cursor={cursor} events={events} dateRefNotes={dateRefNotes} createdNotesByDay={createdNotesByDay} today={today} onDayClick={goToDay} onEventClick={goToNote} />}
+        {view === 'week' && <TimeGrid days={weekDays} events={events} createdNotesByDay={createdNotesByDay} today={today} onEventClick={goToNote} />}
+        {view === 'day' && <TimeGrid days={[cursor]} events={events} createdNotesByDay={createdNotesByDay} today={today} onEventClick={goToNote} />}
       </div>
     </div>
   )
 }
 
 // ---- Month View ----
-function MonthView({ cursor, events, dateRefNotes, today, onDayClick, onEventClick }: Readonly<{
-  cursor: Date; events: CalEvent[]; dateRefNotes: LocalNote[]; today: Date
+function MonthView({ cursor, events, dateRefNotes, createdNotesByDay, today, onDayClick, onEventClick }: Readonly<{
+  cursor: Date; events: CalEvent[]; dateRefNotes: LocalNote[]; createdNotesByDay: Map<string, LocalNote[]>; today: Date
   onDayClick: (d: Date) => void; onEventClick: (id: string) => void
 }>) {
   const gridStart = startOfWeek(startOfMonth(cursor))
@@ -187,6 +200,7 @@ function MonthView({ cursor, events, dateRefNotes, today, onDayClick, onEventCli
                 cursor={cursor}
                 events={events}
                 dateRefNotes={dateRefNotes}
+                createdNotes={createdNotesByDay.get(dayKey(day)) ?? []}
                 today={today}
                 onDayClick={onDayClick}
                 onEventClick={onEventClick}
@@ -199,18 +213,28 @@ function MonthView({ cursor, events, dateRefNotes, today, onDayClick, onEventCli
   )
 }
 
-function MonthDayCell({ day, hasBorderRight, cursor, events, dateRefNotes, today, onDayClick, onEventClick }: Readonly<{
-  day: Date; hasBorderRight: boolean; cursor: Date; events: CalEvent[]; dateRefNotes: LocalNote[]; today: Date
+function MonthDayCell({ day, hasBorderRight, cursor, events, dateRefNotes, createdNotes, today, onDayClick, onEventClick }: Readonly<{
+  day: Date; hasBorderRight: boolean; cursor: Date; events: CalEvent[]; dateRefNotes: LocalNote[]; createdNotes: LocalNote[]; today: Date
   onDayClick: (d: Date) => void; onEventClick: (id: string) => void
 }>) {
   const isToday = sameDay(day, today)
   const inMonth = day.getMonth() === cursor.getMonth()
   const dayEvents = events.filter(e => sameDay(e.start, day))
   const dayDateRefNotes = dateRefNotes.filter(n => n.dateRef && sameDay(new Date(n.dateRef), day))
+  // Exclude calendar events from created notes (they already show as event pills)
+  const eventIds = new Set(dayEvents.map(e => e.note.id))
+  const dayCreatedNotes = createdNotes.filter(n => !eventIds.has(n.id))
   let dayNumberColor: string
   if (isToday) dayNumberColor = '#fff'
   else if (inMonth) dayNumberColor = 'var(--color-text)'
   else dayNumberColor = 'var(--color-text-muted)'
+
+  // Max items to show (events + notes combined)
+  const maxItems = 3
+  const eventSlots = Math.min(dayEvents.length, maxItems)
+  const noteSlots = Math.max(0, maxItems - eventSlots)
+  const remainingEvents = dayEvents.length - eventSlots
+  const remainingNotes = dayCreatedNotes.length - noteSlots
 
   return (
     <button
@@ -232,16 +256,23 @@ function MonthDayCell({ day, hasBorderRight, cursor, events, dateRefNotes, today
       }}>
         {day.getDate()}
       </span>
-      {dayEvents.slice(0, 3).map(ev => (
+      {dayEvents.slice(0, eventSlots).map(ev => (
         <MonthEventPill
           key={ev.note.id}
           event={ev}
           onClick={e => { e.stopPropagation(); onEventClick(ev.note.id) }}
         />
       ))}
-      {dayEvents.length > 3 && (
+      {dayCreatedNotes.slice(0, noteSlots).map(n => (
+        <MonthNotePill
+          key={n.id}
+          note={n}
+          onClick={e => { e.stopPropagation(); onEventClick(n.id) }}
+        />
+      ))}
+      {(remainingEvents > 0 || remainingNotes > 0) && (
         <span style={{ fontSize: '0.6rem', color: 'var(--color-text-muted)', paddingLeft: '0.15rem' }}>
-          +{dayEvents.length - 3} more
+          +{remainingEvents + remainingNotes} more
         </span>
       )}
       {/* dateRef dot markers for non-event notes */}
@@ -290,13 +321,44 @@ function MonthEventPill({ event, onClick }: Readonly<{ event: CalEvent; onClick:
   )
 }
 
+function MonthNotePill({ note, onClick }: Readonly<{ note: LocalNote; onClick: React.MouseEventHandler }>) {
+  const typeDef = getType(note.type)
+  const color = typeDef?.color ?? '#6366f1'
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
+        background: 'var(--color-surface-2)',
+        borderLeft: `2px solid ${color}`,
+        borderTop: 'none', borderRight: 'none', borderBottom: 'none',
+        borderRadius: 3, padding: '0.05rem 0.25rem',
+        fontSize: '0.65rem', color: 'var(--color-text-muted)',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}
+    >
+      {note.title || 'Untitled'}
+    </button>
+  )
+}
+
 // ---- Shared Time Grid (week + day) ----
-function TimeGrid({ days, events, today, onEventClick }: Readonly<{
-  days: Date[]; events: CalEvent[]; today: Date; onEventClick: (id: string) => void
+function TimeGrid({ days, events, createdNotesByDay, today, onEventClick }: Readonly<{
+  days: Date[]; events: CalEvent[]; createdNotesByDay: Map<string, LocalNote[]>; today: Date; onEventClick: (id: string) => void
 }>) {
   const allDayEvs = events.filter(e => e.isAllDay && days.some(d => sameDay(d, e.start)))
   const timedEvs = events.filter(e => !e.isAllDay && days.some(d => sameDay(d, e.start)))
   const hasAllDay = allDayEvs.length > 0
+
+  // Collect created notes for visible days, excluding calendar events
+  const eventIds = new Set(events.map(e => e.note.id))
+  const dayNotesMap = new Map<string, LocalNote[]>()
+  for (const day of days) {
+    const key = dayKey(day)
+    const notes = (createdNotesByDay.get(key) ?? []).filter(n => !eventIds.has(n.id))
+    if (notes.length > 0) dayNotesMap.set(key, notes)
+  }
+  const hasNotes = dayNotesMap.size > 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -319,6 +381,25 @@ function TimeGrid({ days, events, today, onEventClick }: Readonly<{
               ))}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Created notes strip */}
+      {hasNotes && (
+        <div style={{ display: 'flex', flexShrink: 0, borderBottom: '1px solid var(--color-border)', maxHeight: 120, overflowY: 'auto' }}>
+          <div style={{ width: TIME_COL, flexShrink: 0, fontSize: '0.6rem', color: 'var(--color-text-muted)', padding: '0.5rem 0.4rem 0', textAlign: 'right' }}>
+            notes
+          </div>
+          {days.map(day => {
+            const notes = dayNotesMap.get(dayKey(day)) ?? []
+            return (
+              <div key={dayKey(day)} style={{ flex: 1, borderLeft: '1px solid var(--color-border)', padding: '0.2rem 0.25rem', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {notes.map(n => (
+                  <MonthNotePill key={n.id} note={n} onClick={() => onEventClick(n.id)} />
+                ))}
+              </div>
+            )
+          })}
         </div>
       )}
 
