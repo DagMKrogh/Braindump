@@ -1,9 +1,29 @@
 /**
- * API client — thin fetch wrapper.
+ * API client — thin fetch wrapper with automatic token refresh.
  * Only used when a sync server is configured. All UI reads from local store.
  */
 import { useSyncStore } from '../stores/syncStore'
 import { useAuthStore } from '../stores/authStore'
+
+let refreshPromise: Promise<boolean> | null = null
+
+async function tryRefreshToken(): Promise<boolean> {
+  const { serverUrl } = useSyncStore.getState()
+  const { refreshToken, user, setAuth, clearAuth } = useAuthStore.getState()
+  if (!serverUrl || !refreshToken) { clearAuth(); return false }
+
+  try {
+    const res = await fetch(`${serverUrl}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    })
+    if (!res.ok) { clearAuth(); return false }
+    const data = await res.json() as { accessToken: string; refreshToken: string }
+    if (user) setAuth(user, data.accessToken, data.refreshToken)
+    return true
+  } catch { clearAuth(); return false }
+}
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const { serverUrl } = useSyncStore.getState()
@@ -18,6 +38,26 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
+
+  if (res.status === 401) {
+    // Deduplicate concurrent refresh attempts
+    if (!refreshPromise) refreshPromise = tryRefreshToken().finally(() => { refreshPromise = null })
+    const refreshed = await refreshPromise
+    if (!refreshed) throw new Error(`API ${method} ${path} failed: 401 (token refresh failed)`)
+
+    // Retry with new token
+    const { accessToken: newToken } = useAuthStore.getState()
+    const retry = await fetch(`${serverUrl}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    })
+    if (!retry.ok) throw new Error(`API ${method} ${path} failed: ${retry.status}`)
+    return retry.json() as Promise<T>
+  }
 
   if (!res.ok) {
     throw new Error(`API ${method} ${path} failed: ${res.status}`)
