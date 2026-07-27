@@ -74,6 +74,146 @@ function send(res: http.ServerResponse, status: number, body: unknown) {
   res.end(json)
 }
 
+// ── Markdown → Tiptap JSON converter ──────────────────────────────────────
+
+interface TiptapNode {
+  type: string
+  attrs?: Record<string, unknown>
+  content?: TiptapNode[]
+  text?: string
+  marks?: { type: string; attrs?: Record<string, unknown> }[]
+}
+
+function markdownToTiptap(md: string): { type: 'doc'; content: TiptapNode[] } {
+  const lines = md.split('\n')
+  const nodes: TiptapNode[] = []
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]!
+
+    // Blank line — skip
+    if (line.trim() === '') { i++; continue }
+
+    // Fenced code block
+    const fenceMatch = line.match(/^```(\w*)/)
+    if (fenceMatch) {
+      const lang = fenceMatch[1] || null
+      const codeLines: string[] = []
+      i++
+      while (i < lines.length && !lines[i]!.startsWith('```')) {
+        codeLines.push(lines[i]!)
+        i++
+      }
+      i++ // skip closing ```
+      nodes.push({
+        type: 'codeBlock',
+        attrs: lang ? { language: lang } : {},
+        content: codeLines.length ? [{ type: 'text', text: codeLines.join('\n') }] : undefined,
+      })
+      continue
+    }
+
+    // Heading
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)/)
+    if (headingMatch) {
+      nodes.push({
+        type: 'heading',
+        attrs: { level: headingMatch[1]!.length },
+        content: parseInline(headingMatch[2]!),
+      })
+      i++; continue
+    }
+
+    // Horizontal rule
+    if (/^(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+      nodes.push({ type: 'horizontalRule' })
+      i++; continue
+    }
+
+    // Unordered list
+    if (/^\s*[-*+]\s/.test(line)) {
+      const items: TiptapNode[] = []
+      while (i < lines.length && /^\s*[-*+]\s/.test(lines[i]!)) {
+        const text = lines[i]!.replace(/^\s*[-*+]\s+/, '')
+        items.push({ type: 'listItem', content: [{ type: 'paragraph', content: parseInline(text) }] })
+        i++
+      }
+      nodes.push({ type: 'bulletList', content: items })
+      continue
+    }
+
+    // Ordered list
+    if (/^\s*\d+[.)]\s/.test(line)) {
+      const items: TiptapNode[] = []
+      while (i < lines.length && /^\s*\d+[.)]\s/.test(lines[i]!)) {
+        const text = lines[i]!.replace(/^\s*\d+[.)]\s+/, '')
+        items.push({ type: 'listItem', content: [{ type: 'paragraph', content: parseInline(text) }] })
+        i++
+      }
+      nodes.push({ type: 'orderedList', content: items })
+      continue
+    }
+
+    // Blockquote
+    if (line.startsWith('> ')) {
+      const quoteLines: string[] = []
+      while (i < lines.length && lines[i]!.startsWith('> ')) {
+        quoteLines.push(lines[i]!.slice(2))
+        i++
+      }
+      nodes.push({
+        type: 'blockquote',
+        content: [{ type: 'paragraph', content: parseInline(quoteLines.join(' ')) }],
+      })
+      continue
+    }
+
+    // Regular paragraph — collect contiguous non-blank, non-special lines
+    const paraLines: string[] = []
+    while (i < lines.length && lines[i]!.trim() !== '' && !/^(#{1,6}\s|```|>\s|[-*+]\s|\d+[.)]\s|---|\*{3}|_{3})/.test(lines[i]!)) {
+      paraLines.push(lines[i]!)
+      i++
+    }
+    if (paraLines.length) {
+      nodes.push({ type: 'paragraph', content: parseInline(paraLines.join(' ')) })
+    }
+  }
+
+  return { type: 'doc', content: nodes.length ? nodes : [{ type: 'paragraph' }] }
+}
+
+function parseInline(text: string): TiptapNode[] {
+  const nodes: TiptapNode[] = []
+  // Regex: bold (**), italic (*), inline code (`), or plain text
+  const re = /(\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`)/g
+  let last = 0
+  let m: RegExpExecArray | null
+
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) {
+      nodes.push({ type: 'text', text: text.slice(last, m.index) })
+    }
+    if (m[2]) {
+      // Bold
+      nodes.push({ type: 'text', text: m[2], marks: [{ type: 'bold' }] })
+    } else if (m[3]) {
+      // Italic
+      nodes.push({ type: 'text', text: m[3], marks: [{ type: 'italic' }] })
+    } else if (m[4]) {
+      // Inline code
+      nodes.push({ type: 'text', text: m[4], marks: [{ type: 'code' }] })
+    }
+    last = m.index + m[0].length
+  }
+
+  if (last < text.length) {
+    nodes.push({ type: 'text', text: text.slice(last) })
+  }
+
+  return nodes.length ? nodes : [{ type: 'text', text }]
+}
+
 // ── HTTP server ────────────────────────────────────────────────────────────
 
 const server = http.createServer(async (req, res) => {
@@ -110,31 +250,50 @@ const server = http.createServer(async (req, res) => {
       return
     }
 
-    const { title, body: text, tags, type } = body as Record<string, unknown>
-    if (typeof title !== 'string' || typeof text !== 'string') {
-      send(res, 400, { error: '"title" and "body" are required strings' })
+    const { title, body: text, tags, type, content: rawContent, format, metadata: extraMeta } = body as Record<string, unknown>
+    if (typeof title !== 'string') {
+      send(res, 400, { error: '"title" is a required string' })
       return
     }
 
-    // Convert plain text to minimal Tiptap doc
-    const paragraphs = (text as string).split('\n\n').filter(Boolean)
-    const content = {
-      type: 'doc',
-      content: paragraphs.map((para) => ({
-        type: 'paragraph',
-        content: [{ type: 'text', text: para.replace(/\n/g, ' ') }],
-      })),
+    // Determine content: raw Tiptap JSON > markdown body > plain text body
+    let content: unknown
+    if (rawContent && typeof rawContent === 'object') {
+      // Pre-built Tiptap JSON passed directly
+      content = rawContent
+    } else if (typeof text === 'string') {
+      if (format === 'markdown') {
+        content = markdownToTiptap(text)
+      } else {
+        // Plain text fallback
+        const paragraphs = text.split('\n\n').filter(Boolean)
+        content = {
+          type: 'doc',
+          content: paragraphs.map((para) => ({
+            type: 'paragraph',
+            content: [{ type: 'text', text: para.replace(/\n/g, ' ') }],
+          })),
+        }
+      }
+    } else {
+      send(res, 400, { error: '"body" (string) or "content" (object) is required' })
+      return
     }
 
     const baseTags = ['claude', 'ai-generated']
     const extraTags = Array.isArray(tags) ? (tags as string[]).filter((t) => !baseTags.includes(t)) : []
+
+    const metadata: Record<string, unknown> = { ingestedBy: 'local-bridge' }
+    if (extraMeta && typeof extraMeta === 'object' && !Array.isArray(extraMeta)) {
+      Object.assign(metadata, extraMeta)
+    }
 
     const payload = {
       id: crypto.randomUUID(),
       type: typeof type === 'string' ? type : 'scratch',
       title,
       content,
-      metadata: { ingestedBy: 'local-bridge' },
+      metadata,
       tags: [...baseTags, ...extraTags],
       collectionId: null,
       topicId: null,

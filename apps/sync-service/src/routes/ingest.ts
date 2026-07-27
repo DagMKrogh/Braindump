@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '../plugins/db.js'
 import { notes, users } from '../db/schema.js'
 import { config } from '../config.js'
+import { markdownToTiptap } from '../lib/markdownToTiptap.js'
 
 /**
  * POST /ingest
@@ -12,9 +13,12 @@ import { config } from '../config.js'
  *
  * Body:
  *   - title: string (required)
- *   - body: string  — plain text or markdown (required)
+ *   - body: string  — plain text or markdown (one of body/content required)
+ *   - content: object — pre-built Tiptap JSON (one of body/content required)
+ *   - format: 'markdown' | 'plain' — how to parse body (default: plain)
  *   - tags: string[] (optional, merged with ["claude", "ai-generated"])
- *   - type: string (optional, default "note")
+ *   - type: string (optional, default "scratch")
+ *   - metadata: object (optional, merged with base metadata)
  *   - userEmail: string (optional, defaults to first user in DB if omitted)
  *
  * Returns the created note.
@@ -29,14 +33,38 @@ export const ingestRoutes: FastifyPluginAsync = async (app) => {
 
     const body = request.body as {
       title: string
-      body: string
+      body?: string
+      content?: object
+      format?: string
       tags?: string[]
       type?: string
+      metadata?: Record<string, unknown>
       userEmail?: string
     }
 
-    if (!body.title || !body.body) {
-      return reply.status(400).send({ error: 'title and body are required' })
+    if (!body.title) {
+      return reply.status(400).send({ error: 'title is required' })
+    }
+
+    // Determine content: raw Tiptap JSON > markdown body > plain text body
+    let content: unknown
+    if (body.content && typeof body.content === 'object') {
+      content = body.content
+    } else if (typeof body.body === 'string') {
+      if (body.format === 'markdown') {
+        content = markdownToTiptap(body.body)
+      } else {
+        const paragraphs = body.body.split('\n\n').filter(Boolean)
+        content = {
+          type: 'doc',
+          content: paragraphs.map((para) => ({
+            type: 'paragraph',
+            content: [{ type: 'text', text: para.replace(/\n/g, ' ') }],
+          })),
+        }
+      }
+    } else {
+      return reply.status(400).send({ error: '"body" (string) or "content" (object) is required' })
     }
 
     // Resolve user: by email if provided, else first user
@@ -51,28 +79,23 @@ export const ingestRoutes: FastifyPluginAsync = async (app) => {
       userId = first.id
     }
 
-    // Convert plain text / markdown to minimal Tiptap doc
-    const paragraphs = body.body.split('\n\n').filter(Boolean)
-    const content = {
-      type: 'doc',
-      content: paragraphs.map((para) => ({
-        type: 'paragraph',
-        content: [{ type: 'text', text: para.replace(/\n/g, ' ') }],
-      })),
-    }
-
     const baseTags = ['claude', 'ai-generated']
     const extraTags = (body.tags ?? []).filter((t) => !baseTags.includes(t))
     const tags = [...baseTags, ...extraTags]
+
+    const metadata: Record<string, unknown> = { ingestedBy: 'claude-skill' }
+    if (body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata)) {
+      Object.assign(metadata, body.metadata)
+    }
 
     const now = new Date()
     const [note] = await db.insert(notes).values({
       id: crypto.randomUUID(),
       userId,
-      type: body.type ?? 'note',
+      type: body.type ?? 'scratch',
       title: body.title,
       content,
-      metadata: { ingestedBy: 'claude-skill' },
+      metadata,
       tags,
       linkedNoteIds: [],
       isPinned: false,
