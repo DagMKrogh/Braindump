@@ -90,9 +90,13 @@ class SyncEngine {
   private async handleServerEvent(msg: { type: string; payload?: unknown }) {
     const { upsertNote, removeNote } = useNotesStore.getState()
     if (msg.type === 'note:created' || msg.type === 'note:updated') {
-      const note = msg.payload as Parameters<typeof upsertNote>[0]
+      const note = msg.payload as Parameters<typeof upsertNote>[0] & { deletedAt?: string | null }
       await upsertNotes([{ ...note, syncStatus: 'synced', localOnly: false }])
-      upsertNote({ ...note, syncStatus: 'synced', localOnly: false })
+      if (note.deletedAt) {
+        removeNote(note.id)
+      } else {
+        upsertNote({ ...note, syncStatus: 'synced', localOnly: false })
+      }
     } else if (msg.type === 'note:deleted') {
       const { id } = msg.payload as { id: string }
       removeNote(id)

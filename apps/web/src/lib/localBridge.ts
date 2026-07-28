@@ -141,7 +141,11 @@ localBridge.on<LocalNote>('note:ingest', async (raw) => {
 localBridge.on<LocalNote>('note:upsert', async (raw) => {
   const note = { ...raw, userId: raw.userId || 'local' }
   await upsertNote(note)
-  useNotesStore.getState().upsertNote(note)
+  if (note.deletedAt) {
+    useNotesStore.getState().removeNote(note.id)
+  } else {
+    useNotesStore.getState().upsertNote(note)
+  }
   console.debug('[bridge] note synced:', note.id, note.title)
 })
 
