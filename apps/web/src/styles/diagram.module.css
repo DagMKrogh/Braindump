@@ -502,6 +502,12 @@
   stroke: var(--color-accent);
 }
 
+/* Arrow marker definitions (rendered in SVG <defs>) */
+.diagramCanvas :global(marker) polyline {
+  stroke: var(--color-text-muted) !important;
+  fill: var(--color-text-muted) !important;
+}
+
 .diagramCanvas :global(.react-flow__handle) {
   background: var(--color-accent);
   border: 2px solid var(--color-surface);

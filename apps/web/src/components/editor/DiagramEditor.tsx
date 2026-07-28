@@ -56,7 +56,7 @@ export function DiagramEditor({ diagram, onClose }: Props) {
   const onConnect: OnConnect = useCallback(
     (connection) => setEdges((eds) => addEdge({
       ...connection,
-      markerEnd: { type: MarkerType.ArrowClosed },
+      markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20, color: '#888' },
     }, eds)),
     [],
   )
@@ -187,7 +187,7 @@ export function DiagramEditor({ diagram, onClose }: Props) {
   }, [selectedEdge])
 
   const setEdgeDirection = useCallback((dir: 'forward' | 'back' | 'both' | 'none') => {
-    const arrow = { type: MarkerType.ArrowClosed }
+    const arrow = { type: MarkerType.ArrowClosed, width: 20, height: 20, color: '#888' }
     updateEdge((e) => {
       switch (dir) {
         case 'forward': return { ...e, markerEnd: arrow, markerStart: undefined }
@@ -400,6 +400,9 @@ export function DiagramEditor({ diagram, onClose }: Props) {
           onPaneClick={handlePaneClick}
           onInit={(instance) => { rfInstance.current = instance }}
           nodeTypes={customNodeTypes}
+          defaultEdgeOptions={{
+            markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20, color: '#888' },
+          }}
           fitView
           deleteKeyCode="Backspace"
           proOptions={{ hideAttribution: true }}
