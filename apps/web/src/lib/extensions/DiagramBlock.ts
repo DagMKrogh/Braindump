@@ -11,6 +11,7 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 
 export const EDIT_DIAGRAM_EVENT = 'braindump:edit-diagram'
+export const SAVE_DIAGRAM_EVENT = 'braindump:save-diagram'
 
 export interface DiagramData {
   diagramId: string
@@ -154,6 +155,23 @@ export const DiagramBlock = Node.create({
               },
             })
             .run()
+        },
+      updateDiagram:
+        (data: DiagramData) =>
+        ({ tr, dispatch }: { tr: { doc: { descendants: (fn: (node: { type: { name: string }; attrs: Record<string, unknown> }, pos: number) => boolean | void) => void }; nodeSize: number }; dispatch: ((tr: unknown) => void) | undefined }) => {
+          let found = false
+          tr.doc.descendants((node: { type: { name: string }; attrs: Record<string, unknown> }, pos: number) => {
+            if (node.type.name === 'diagramBlock' && node.attrs.diagramId === data.diagramId) {
+              const attrs = { ...node.attrs, label: data.label, nodes: data.nodes, edges: data.edges }
+              if (dispatch) {
+                ;(tr as unknown as { setNodeMarkup: (pos: number, type: undefined, attrs: object) => unknown }).setNodeMarkup(pos, undefined, attrs)
+              }
+              found = true
+              return false
+            }
+          })
+          if (dispatch && found) dispatch(tr)
+          return found
         },
     }
   },

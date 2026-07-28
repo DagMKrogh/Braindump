@@ -23,7 +23,7 @@ import type { LocalNote } from '@braindump/shared'
 import { getType } from '../../lib/noteTypeRegistry'
 import { downloadMarkdown } from '../../lib/markdownExport'
 import { createNoteLinkExtension, extractNoteLinks } from '../../lib/extensions/NoteLink'
-import { DiagramBlock } from '../../lib/extensions/DiagramBlock'
+import { DiagramBlock, SAVE_DIAGRAM_EVENT, type DiagramData } from '../../lib/extensions/DiagramBlock'
 import { encrypt, decrypt, isEncryptedPayload } from '../../lib/crypto'
 import { useSyncStore } from '../../stores/syncStore'
 import { useNotesStore } from '../../stores/notesStore'
@@ -232,6 +232,17 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
 
   // Cleanup timer on unmount
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current) }, [])
+
+  // Listen for diagram save events and update the ProseMirror document directly
+  useEffect(() => {
+    if (!editor) return
+    const handler = (e: Event) => {
+      const data = (e as CustomEvent<DiagramData>).detail
+      ;(editor.commands as unknown as { updateDiagram: (data: DiagramData) => boolean }).updateDiagram(data)
+    }
+    window.addEventListener(SAVE_DIAGRAM_EVENT, handler)
+    return () => window.removeEventListener(SAVE_DIAGRAM_EVENT, handler)
+  }, [editor])
 
   // Close export dropdown on outside click
   useEffect(() => {

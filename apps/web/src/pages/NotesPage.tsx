@@ -88,27 +88,6 @@ export function NotesPage() {
     setEditingDiagram(null)
   }, [activeNoteId])
 
-  // Save diagram data back into the note's content by walking the ProseMirror JSON
-  const handleDiagramSave = useCallback((data: DiagramData) => {
-    if (!activeNote) return
-    const content = structuredClone(activeNote.content) as {
-      type?: string; attrs?: Record<string, unknown>; content?: unknown[]
-    }
-    function walk(node: { type?: string; attrs?: Record<string, unknown>; content?: unknown[] }) {
-      if (node.type === 'diagramBlock' && node.attrs?.diagramId === data.diagramId) {
-        node.attrs.label = data.label
-        node.attrs.nodes = data.nodes
-        node.attrs.edges = data.edges
-      }
-      if (Array.isArray(node.content)) {
-        node.content.forEach((child) => walk(child as typeof node))
-      }
-    }
-    walk(content)
-    saveNote(activeNoteId!, { content })
-    setEditingDiagram(null)
-  }, [activeNote, activeNoteId, saveNote])
-
   // Notes that link to the currently active note (backlinks)
   const backlinks = useMemo(() =>
     activeNote
@@ -173,7 +152,6 @@ export function NotesPage() {
               <DiagramEditor
                 key={editingDiagram.diagramId}
                 diagram={editingDiagram}
-                onSave={handleDiagramSave}
                 onClose={() => setEditingDiagram(null)}
               />
             )}

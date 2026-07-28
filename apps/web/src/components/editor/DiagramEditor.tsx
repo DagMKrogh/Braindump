@@ -15,19 +15,18 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { X, Plus, Save, Trash2 } from 'lucide-react'
-import type { DiagramData } from '../../lib/extensions/DiagramBlock'
+import { SAVE_DIAGRAM_EVENT, type DiagramData } from '../../lib/extensions/DiagramBlock'
 import s from '../../styles/layout.module.css'
 import ds from '../../styles/diagram.module.css'
 
 interface Props {
   diagram: DiagramData
-  onSave: (data: DiagramData) => void
   onClose: () => void
 }
 
 let nextNodeId = 100
 
-export function DiagramEditor({ diagram, onSave, onClose }: Props) {
+export function DiagramEditor({ diagram, onClose }: Props) {
   const [nodes, setNodes] = useState<Node[]>(diagram.nodes as Node[])
   const [edges, setEdges] = useState<Edge[]>(diagram.edges as Edge[])
   const [label, setLabel] = useState(diagram.label)
@@ -74,13 +73,15 @@ export function DiagramEditor({ diagram, onSave, onClose }: Props) {
   }, [selectedNode])
 
   const handleSave = useCallback(() => {
-    onSave({
+    const data: DiagramData = {
       diagramId: diagram.diagramId,
       label,
       nodes: nodes as object[],
       edges: edges as object[],
-    })
-  }, [diagram.diagramId, label, nodes, edges, onSave])
+    }
+    window.dispatchEvent(new CustomEvent(SAVE_DIAGRAM_EVENT, { detail: data }))
+    onClose()
+  }, [diagram.diagramId, label, nodes, edges, onClose])
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelectedNode(node.id)
