@@ -65,6 +65,13 @@
   white-space: nowrap;
 }
 
+.edgeCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+}
+
 .diagramCanvas {
   flex: 1;
   min-height: 0;

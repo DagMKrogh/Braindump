@@ -6,6 +6,7 @@ import ReactFlow, {
   Background,
   Controls,
   MiniMap,
+  MarkerType,
   type Node,
   type Edge,
   type OnNodesChange,
@@ -32,6 +33,7 @@ export function DiagramEditor({ diagram, onClose }: Props) {
   const [edges, setEdges] = useState<Edge[]>(diagram.edges as Edge[])
   const [label, setLabel] = useState(diagram.label)
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
+  const [selectedEdge, setSelectedEdge] = useState<string | null>(null)
   const [editingLabel, setEditingLabel] = useState('')
   const [addMenuOpen, setAddMenuOpen] = useState(false)
   const rfInstance = useRef<ReactFlowInstance | null>(null)
@@ -52,7 +54,10 @@ export function DiagramEditor({ diagram, onClose }: Props) {
   )
 
   const onConnect: OnConnect = useCallback(
-    (connection) => setEdges((eds) => addEdge({ ...connection, animated: true }, eds)),
+    (connection) => setEdges((eds) => addEdge({
+      ...connection,
+      markerEnd: { type: MarkerType.ArrowClosed },
+    }, eds)),
     [],
   )
 
@@ -91,11 +96,16 @@ export function DiagramEditor({ diagram, onClose }: Props) {
   }, [availableNodeTypes])
 
   const deleteSelected = useCallback(() => {
+    if (selectedEdge) {
+      setEdges((eds) => eds.filter((e) => e.id !== selectedEdge))
+      setSelectedEdge(null)
+      return
+    }
     if (!selectedNode) return
     setNodes((nds) => nds.filter((n) => n.id !== selectedNode))
     setEdges((eds) => eds.filter((e) => e.source !== selectedNode && e.target !== selectedNode))
     setSelectedNode(null)
-  }, [selectedNode])
+  }, [selectedNode, selectedEdge])
 
   const handleSave = useCallback(() => {
     const data: DiagramData = {
@@ -111,11 +121,18 @@ export function DiagramEditor({ diagram, onClose }: Props) {
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelectedNode(node.id)
+    setSelectedEdge(null)
     setEditingLabel((node.data as { label: string }).label)
+  }, [])
+
+  const handleEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
+    setSelectedEdge(edge.id)
+    setSelectedNode(null)
   }, [])
 
   const handlePaneClick = useCallback(() => {
     setSelectedNode(null)
+    setSelectedEdge(null)
     setAddMenuOpen(false)
   }, [])
 
@@ -163,9 +180,35 @@ export function DiagramEditor({ diagram, onClose }: Props) {
     )
   }, [selectedNode])
 
+  // ── Edge property helpers ──────────────────────────────────────────────
+  const updateEdge = useCallback((updater: (e: Edge) => Edge) => {
+    if (!selectedEdge) return
+    setEdges((eds) => eds.map((e) => e.id === selectedEdge ? updater(e) : e))
+  }, [selectedEdge])
+
+  const setEdgeDirection = useCallback((dir: 'forward' | 'back' | 'both' | 'none') => {
+    const arrow = { type: MarkerType.ArrowClosed }
+    updateEdge((e) => {
+      switch (dir) {
+        case 'forward': return { ...e, markerEnd: arrow, markerStart: undefined }
+        case 'back':    return { ...e, markerEnd: undefined, markerStart: arrow }
+        case 'both':    return { ...e, markerEnd: arrow, markerStart: arrow }
+        case 'none':    return { ...e, markerEnd: undefined, markerStart: undefined }
+      }
+    })
+  }, [updateEdge])
+
   const selectedNodeData = selectedNode ? nodes.find((n) => n.id === selectedNode) : null
   const selectedType = selectedNodeData?.type ?? 'default'
   const selectedData = selectedNodeData?.data as Record<string, unknown> | undefined
+
+  const selectedEdgeData = selectedEdge ? edges.find((e) => e.id === selectedEdge) : null
+  const edgeDirection = selectedEdgeData
+    ? (selectedEdgeData.markerStart && selectedEdgeData.markerEnd ? 'both'
+      : selectedEdgeData.markerStart ? 'back'
+      : selectedEdgeData.markerEnd ? 'forward'
+      : 'none')
+    : 'forward'
 
   return (
     <div className={ds.diagramPanel}>
@@ -209,11 +252,11 @@ export function DiagramEditor({ diagram, onClose }: Props) {
             )}
           </div>
 
-          {selectedNode && (
+          {(selectedNode || selectedEdge) && (
             <button
               className={`${s.btn} ${s.btnGhost}`}
               onClick={deleteSelected}
-              title="Delete selected node"
+              title={selectedEdge ? 'Delete selected edge' : 'Delete selected node'}
               style={{ color: 'var(--color-error)' }}
             >
               <Trash2 size={14} /> Delete
@@ -288,6 +331,62 @@ export function DiagramEditor({ diagram, onClose }: Props) {
         </div>
       )}
 
+      {/* Edge property editor */}
+      {selectedEdgeData && (
+        <div className={ds.nodeEditor}>
+          <span className={ds.nodeEditorLabel}>Label:</span>
+          <input
+            className={s.metaInput}
+            value={(selectedEdgeData.label as string) ?? ''}
+            onChange={(e) => updateEdge((ed) => ({ ...ed, label: e.target.value || undefined }))}
+            placeholder="Edge label"
+          />
+          <span className={ds.nodeEditorLabel}>Direction:</span>
+          <select
+            className={s.metaSelect}
+            value={edgeDirection}
+            onChange={(e) => setEdgeDirection(e.target.value as 'forward' | 'back' | 'both' | 'none')}
+          >
+            <option value="forward">Forward →</option>
+            <option value="back">← Back</option>
+            <option value="both">↔ Both</option>
+            <option value="none">— None</option>
+          </select>
+          <span className={ds.nodeEditorLabel}>Style:</span>
+          <select
+            className={s.metaSelect}
+            value={selectedEdgeData.type ?? 'default'}
+            onChange={(e) => updateEdge((ed) => ({ ...ed, type: e.target.value === 'default' ? undefined : e.target.value }))}
+          >
+            <option value="default">Bezier</option>
+            <option value="smoothstep">Smooth Step</option>
+            <option value="step">Step</option>
+            <option value="straight">Straight</option>
+          </select>
+          <label className={ds.edgeCheckbox}>
+            <input
+              type="checkbox"
+              checked={selectedEdgeData.animated ?? false}
+              onChange={(e) => updateEdge((ed) => ({ ...ed, animated: e.target.checked }))}
+            />
+            <span className={ds.nodeEditorLabel}>Animated</span>
+          </label>
+          <label className={ds.edgeCheckbox}>
+            <input
+              type="checkbox"
+              checked={selectedEdgeData.style?.strokeDasharray === '5 5'}
+              onChange={(e) => updateEdge((ed) => ({
+                ...ed,
+                style: e.target.checked
+                  ? { ...ed.style, strokeDasharray: '5 5' }
+                  : { ...ed.style, strokeDasharray: undefined },
+              }))}
+            />
+            <span className={ds.nodeEditorLabel}>Dashed</span>
+          </label>
+        </div>
+      )}
+
       {/* React Flow canvas */}
       <div className={ds.diagramCanvas}>
         <ReactFlow
@@ -297,6 +396,7 @@ export function DiagramEditor({ diagram, onClose }: Props) {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeClick={handleNodeClick}
+          onEdgeClick={handleEdgeClick}
           onPaneClick={handlePaneClick}
           onInit={(instance) => { rfInstance.current = instance }}
           nodeTypes={customNodeTypes}
