@@ -61,6 +61,116 @@
   min-height: 0;
 }
 
+/* Add node dropdown positioning */
+.addNodeMenu {
+  left: 0;
+  right: auto;
+  min-width: 200px;
+}
+
+.nodeTypeLabel {
+  display: block;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.nodeTypeDesc {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Custom node styles ──────────────────────────────────────────────────── */
+.customNode {
+  position: relative;
+  font-size: 0.8rem;
+  color: var(--color-text);
+}
+
+.customNodeLabel {
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.handle {
+  background: var(--color-accent) !important;
+}
+
+/* Input node — rounded, green-tinted */
+.inputNode {
+  background: color-mix(in srgb, var(--color-success) 15%, var(--color-surface));
+  border: 2px solid var(--color-success);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  min-width: 80px;
+}
+
+/* Output node — rounded, red-tinted */
+.outputNode {
+  background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface));
+  border: 2px solid var(--color-error);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  min-width: 80px;
+}
+
+/* Decision node — diamond shape */
+.decisionNode {
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  min-height: 100px;
+}
+
+.decisionDiamond {
+  background: color-mix(in srgb, var(--color-warning) 15%, var(--color-surface));
+  border: 2px solid var(--color-warning);
+  width: 90px;
+  height: 90px;
+  transform: rotate(45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.decisionDiamond .customNodeLabel {
+  transform: rotate(-45deg);
+  font-size: 0.75rem;
+  max-width: 60px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* Group / container node */
+.groupNode {
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  border: 2px dashed color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  border-radius: var(--radius);
+  min-width: 200px;
+  min-height: 150px;
+  padding: 0;
+}
+
+.groupLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-accent);
+  padding: 0.35rem 0.6rem;
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 25%, var(--color-border));
+  border-radius: var(--radius) var(--radius) 0 0;
+  cursor: grab;
+}
+
 /* React Flow theme overrides */
 .diagramCanvas :global(.react-flow__node) {
   background: var(--color-surface);
