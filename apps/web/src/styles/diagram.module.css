@@ -115,6 +115,7 @@
   border-radius: 20px;
   padding: 0.5rem 1rem;
   min-width: 80px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Output node — rounded, red-tinted */
@@ -124,6 +125,7 @@
   border-radius: 20px;
   padding: 0.5rem 1rem;
   min-width: 80px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Decision node — diamond shape */
@@ -147,6 +149,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .decisionDiamond .customNodeLabel {
@@ -188,6 +191,7 @@
   min-width: 160px;
   padding: 0;
   text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .classHeader {
@@ -226,6 +230,7 @@
   min-width: 160px;
   padding: 0;
   text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .entityHeader {
@@ -276,6 +281,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0.2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .actorIcon {
@@ -284,7 +290,9 @@
 }
 
 /* React Flow theme overrides */
-.diagramCanvas :global(.react-flow__node) {
+
+/* Default node type only */
+.diagramCanvas :global(.react-flow__node-default) {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -294,9 +302,28 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.diagramCanvas :global(.react-flow__node.selected) {
+.diagramCanvas :global(.react-flow__node-default.selected) {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+/* Custom node types — strip the React Flow wrapper styling so our CSS shows */
+.diagramCanvas :global(.react-flow__node-input),
+.diagramCanvas :global(.react-flow__node-output),
+.diagramCanvas :global(.react-flow__node-decision),
+.diagramCanvas :global(.react-flow__node-group),
+.diagramCanvas :global(.react-flow__node-classNode),
+.diagramCanvas :global(.react-flow__node-entityNode),
+.diagramCanvas :global(.react-flow__node-actorNode) {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+.diagramCanvas :global(.react-flow__node.selected) {
+  /* Let custom nodes handle their own selected state via NodeResizer */
 }
 
 .diagramCanvas :global(.react-flow__edge-path) {
