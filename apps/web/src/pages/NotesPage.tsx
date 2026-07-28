@@ -50,7 +50,7 @@ export function NotesPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const collectionFilter = searchParams.get('collection')
-  const { notes, activeNote, activeNoteId, setActiveNoteId, createNote, saveNote, deleteNote } = useNotes()
+  const { notes, activeNote, activeNoteId, setActiveNoteId, createNote, saveNote, deleteNote, mergeNotes } = useNotes()
   const [editingDiagram, setEditingDiagram] = useState<DiagramData | null>(null)
 
   // Sync URL param → active note
@@ -121,6 +121,11 @@ export function NotesPage() {
     navigate('/notes', { replace: true })
   }
 
+  const handleMerge = async (ids: string[]) => {
+    const newId = await mergeNotes(ids)
+    if (newId) navigate(`/notes/${newId}`, { replace: true })
+  }
+
   return (
     <>
       <NoteList
@@ -128,6 +133,7 @@ export function NotesPage() {
         activeNoteId={activeNoteId}
         onSelectNote={handleSelectNote}
         onCreateNote={handleCreateNote}
+        onMergeNotes={handleMerge}
       />
 
       <div className={s.editorPanel}>

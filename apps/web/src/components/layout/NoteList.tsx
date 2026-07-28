@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { Plus, FileText } from 'lucide-react'
+import { useState, useMemo, useCallback } from 'react'
+import { Plus, FileText, Merge, X } from 'lucide-react'
 import type { LocalNote, NoteType } from '@braindump/shared'
 import { NoteListItem } from './NoteListItem'
 import { TypePicker } from '../ui/TypePicker'
@@ -10,18 +10,33 @@ interface Props {
   activeNoteId: string | null
   onSelectNote: (id: string) => void
   onCreateNote: (type: NoteType) => void
+  onMergeNotes?: (ids: string[]) => void
 }
 
-export function NoteList({ notes, activeNoteId, onSelectNote, onCreateNote }: Props) {
+export function NoteList({ notes, activeNoteId, onSelectNote, onCreateNote, onMergeNotes }: Props) {
   const [query, setQuery] = useState('')
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const selectMode = selected.size > 0
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const clearSelection = useCallback(() => setSelected(new Set()), [])
 
   function onSearchKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       document.querySelector<HTMLElement>('[data-note-item]')?.focus()
     } else if (e.key === 'Escape') {
-      setQuery('')
+      if (selectMode) clearSelection()
+      else setQuery('')
     }
   }
 
@@ -35,37 +50,65 @@ export function NoteList({ notes, activeNoteId, onSelectNote, onCreateNote }: Pr
     )
   }, [notes, query])
 
+  const handleMerge = () => {
+    if (selected.size < 2 || !onMergeNotes) return
+    if (!confirm(`Merge ${selected.size} notes into one? The original notes will be deleted.`)) return
+    onMergeNotes([...selected])
+    clearSelection()
+  }
+
   return (
     <div className={s.noteListPanel}>
       <div className={s.noteListHeader}>
-        <div className={s.noteListActions}>
-          <input
-            data-note-search
-            className={s.searchInput}
-            placeholder="Filter notes…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={onSearchKeyDown}
-          />
-          <div style={{ position: 'relative' }}>
+        {selectMode ? (
+          <div className={s.noteListActions}>
+            <span className={s.selectionCount}>{selected.size} selected</span>
             <button
-              className={`${s.btn} ${s.btnPrimary} ${s.btnIcon}`}
-              onClick={() => setPickerOpen((v) => !v)}
-              title="New note"
+              className={`${s.btn} ${s.btnPrimary} ${s.btnSmall}`}
+              onClick={handleMerge}
+              disabled={selected.size < 2}
+              title="Merge selected notes"
             >
-              <Plus size={15} />
+              <Merge size={13} /> Merge
             </button>
-            {pickerOpen && (
-              <TypePicker
-                onSelect={(type) => {
-                  setPickerOpen(false)
-                  onCreateNote(type)
-                }}
-                onClose={() => setPickerOpen(false)}
-              />
-            )}
+            <button
+              className={`${s.btn} ${s.btnGhost} ${s.btnIcon}`}
+              onClick={clearSelection}
+              title="Cancel selection"
+            >
+              <X size={14} />
+            </button>
           </div>
-        </div>
+        ) : (
+          <div className={s.noteListActions}>
+            <input
+              data-note-search
+              className={s.searchInput}
+              placeholder="Filter notes…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={onSearchKeyDown}
+            />
+            <div style={{ position: 'relative' }}>
+              <button
+                className={`${s.btn} ${s.btnPrimary} ${s.btnIcon}`}
+                onClick={() => setPickerOpen((v) => !v)}
+                title="New note"
+              >
+                <Plus size={15} />
+              </button>
+              {pickerOpen && (
+                <TypePicker
+                  onSelect={(type) => {
+                    setPickerOpen(false)
+                    onCreateNote(type)
+                  }}
+                  onClose={() => setPickerOpen(false)}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={s.noteListItems}>
@@ -83,7 +126,10 @@ export function NoteList({ notes, activeNoteId, onSelectNote, onCreateNote }: Pr
               key={note.id}
               note={note}
               isActive={note.id === activeNoteId}
-              onClick={() => onSelectNote(note.id)}
+              isSelected={selected.has(note.id)}
+              selectMode={selectMode}
+              onClick={() => selectMode ? toggleSelect(note.id) : onSelectNote(note.id)}
+              onLongPress={() => toggleSelect(note.id)}
             />
           ))
         )}
