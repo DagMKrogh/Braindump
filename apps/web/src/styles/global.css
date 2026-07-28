@@ -161,6 +161,18 @@ body {
   color: var(--color-text);
 }
 
+.diagram-block-type {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  margin-left: auto;
+}
+
 .diagram-block-count {
   font-size: 0.7rem;
   color: var(--color-text-muted);

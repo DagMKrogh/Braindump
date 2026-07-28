@@ -16,7 +16,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import { X, Plus, Save, Trash2, ChevronDown } from 'lucide-react'
 import { SAVE_DIAGRAM_EVENT, type DiagramData } from '../../lib/extensions/DiagramBlock'
-import { customNodeTypes, nodeTypeOptions, type DiagramNodeType } from './diagramNodes'
+import { customNodeTypes, getNodeTypesForDiagram, type DiagramNodeType } from './diagramNodes'
 import s from '../../styles/layout.module.css'
 import ds from '../../styles/diagram.module.css'
 
@@ -36,6 +36,9 @@ export function DiagramEditor({ diagram, onClose }: Props) {
   const [addMenuOpen, setAddMenuOpen] = useState(false)
   const rfInstance = useRef<ReactFlowInstance | null>(null)
   const addMenuRef = useRef<HTMLDivElement>(null)
+
+  const diagramType = diagram.diagramType || 'general'
+  const availableNodeTypes = getNodeTypesForDiagram(diagramType)
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -58,8 +61,17 @@ export function DiagramEditor({ diagram, onClose }: Props) {
     const x = viewport ? (-viewport.x + 400) / (viewport.zoom || 1) : 200
     const y = viewport ? (-viewport.y + 300) / (viewport.zoom || 1) : 200
 
-    const typeLabel = nodeTypeOptions.find((o) => o.type === nodeType)?.label ?? 'Node'
+    const typeOpt = availableNodeTypes.find((o) => o.type === nodeType)
+    const typeLabel = typeOpt?.label ?? 'Node'
     const isGroup = nodeType === 'group'
+
+    // Build default data based on node type
+    let data: Record<string, unknown> = { label: `${typeLabel} ${id}` }
+    if (nodeType === 'classNode') {
+      data = { label: 'ClassName', properties: ['+id: string'], methods: ['+getId(): string'] }
+    } else if (nodeType === 'entityNode') {
+      data = { label: 'table_name', attributes: ['id: uuid PK'] }
+    }
 
     setNodes((nds) => [
       ...nds,
@@ -67,7 +79,7 @@ export function DiagramEditor({ diagram, onClose }: Props) {
         id,
         type: nodeType,
         position: { x, y },
-        data: { label: `${typeLabel} ${id}` },
+        data,
         ...(isGroup ? {
           style: { width: 300, height: 200 },
           dragHandle: `.${ds.groupLabel}`,
@@ -75,7 +87,7 @@ export function DiagramEditor({ diagram, onClose }: Props) {
       },
     ])
     setAddMenuOpen(false)
-  }, [])
+  }, [availableNodeTypes])
 
   const deleteSelected = useCallback(() => {
     if (!selectedNode) return
@@ -87,13 +99,14 @@ export function DiagramEditor({ diagram, onClose }: Props) {
   const handleSave = useCallback(() => {
     const data: DiagramData = {
       diagramId: diagram.diagramId,
+      diagramType,
       label,
       nodes: nodes as object[],
       edges: edges as object[],
     }
     window.dispatchEvent(new CustomEvent(SAVE_DIAGRAM_EVENT, { detail: data }))
     onClose()
-  }, [diagram.diagramId, label, nodes, edges, onClose])
+  }, [diagram.diagramId, diagramType, label, nodes, edges, onClose])
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelectedNode(node.id)
@@ -114,26 +127,44 @@ export function DiagramEditor({ diagram, onClose }: Props) {
     )
   }, [selectedNode, editingLabel])
 
-  // Change type of selected node
   const handleChangeNodeType = useCallback((newType: DiagramNodeType) => {
     if (!selectedNode) return
     const isGroup = newType === 'group'
     setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id !== selectedNode) return n
+        // Preserve structured data when switching between compatible types
+        let data = n.data as Record<string, unknown>
+        if (newType === 'classNode' && !data.properties) {
+          data = { ...data, properties: [], methods: [] }
+        } else if (newType === 'entityNode' && !data.attributes) {
+          data = { ...data, attributes: [] }
+        }
+        return {
+          ...n,
+          type: newType,
+          data,
+          ...(isGroup
+            ? { style: { width: 300, height: 200 }, dragHandle: `.${ds.groupLabel}` }
+            : { style: undefined, dragHandle: undefined }),
+        }
+      }),
+    )
+  }, [selectedNode])
+
+  // Update structured data (properties, methods, attributes) for class/entity nodes
+  const updateNodeData = useCallback((key: string, value: string[]) => {
+    if (!selectedNode) return
+    setNodes((nds) =>
       nds.map((n) =>
-        n.id === selectedNode
-          ? {
-              ...n,
-              type: newType,
-              ...(isGroup
-                ? { style: { width: 300, height: 200 }, dragHandle: `.${ds.groupLabel}` }
-                : { style: undefined, dragHandle: undefined }),
-            }
-          : n,
+        n.id === selectedNode ? { ...n, data: { ...n.data, [key]: value } } : n,
       ),
     )
   }, [selectedNode])
 
   const selectedNodeData = selectedNode ? nodes.find((n) => n.id === selectedNode) : null
+  const selectedType = selectedNodeData?.type ?? 'default'
+  const selectedData = selectedNodeData?.data as Record<string, unknown> | undefined
 
   return (
     <div className={ds.diagramPanel}>
@@ -157,7 +188,7 @@ export function DiagramEditor({ diagram, onClose }: Props) {
             </button>
             {addMenuOpen && (
               <div className={`${s.dropdownMenu} ${ds.addNodeMenu}`}>
-                {nodeTypeOptions.map((opt) => (
+                {availableNodeTypes.map((opt) => (
                   <button
                     key={opt.type}
                     className={s.dropdownItem}
@@ -204,13 +235,49 @@ export function DiagramEditor({ diagram, onClose }: Props) {
           <span className={ds.nodeEditorLabel}>Type:</span>
           <select
             className={s.metaSelect}
-            value={selectedNodeData.type ?? 'default'}
+            value={selectedType}
             onChange={(e) => handleChangeNodeType(e.target.value as DiagramNodeType)}
           >
-            {nodeTypeOptions.map((opt) => (
+            {availableNodeTypes.map((opt) => (
               <option key={opt.type} value={opt.type}>{opt.label}</option>
             ))}
           </select>
+
+          {/* Class node: properties + methods editor */}
+          {selectedType === 'classNode' && selectedData && (
+            <>
+              <span className={ds.nodeEditorLabel}>Props:</span>
+              <textarea
+                className={`${s.metaInput} ${ds.structuredInput}`}
+                value={((selectedData.properties as string[]) ?? []).join('\n')}
+                onChange={(e) => updateNodeData('properties', e.target.value.split('\n').filter(Boolean))}
+                placeholder="+name: type (one per line)"
+                rows={3}
+              />
+              <span className={ds.nodeEditorLabel}>Methods:</span>
+              <textarea
+                className={`${s.metaInput} ${ds.structuredInput}`}
+                value={((selectedData.methods as string[]) ?? []).join('\n')}
+                onChange={(e) => updateNodeData('methods', e.target.value.split('\n').filter(Boolean))}
+                placeholder="+method(): type (one per line)"
+                rows={3}
+              />
+            </>
+          )}
+
+          {/* Entity node: attributes editor */}
+          {selectedType === 'entityNode' && selectedData && (
+            <>
+              <span className={ds.nodeEditorLabel}>Attrs:</span>
+              <textarea
+                className={`${s.metaInput} ${ds.structuredInput}`}
+                value={((selectedData.attributes as string[]) ?? []).join('\n')}
+                onChange={(e) => updateNodeData('attributes', e.target.value.split('\n').filter(Boolean))}
+                placeholder="column: type PK/FK (one per line)"
+                rows={4}
+              />
+            </>
+          )}
         </div>
       )}
 

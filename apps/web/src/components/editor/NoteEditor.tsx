@@ -23,7 +23,7 @@ import type { LocalNote } from '@braindump/shared'
 import { getType } from '../../lib/noteTypeRegistry'
 import { downloadMarkdown } from '../../lib/markdownExport'
 import { createNoteLinkExtension, extractNoteLinks } from '../../lib/extensions/NoteLink'
-import { DiagramBlock, SAVE_DIAGRAM_EVENT, type DiagramData } from '../../lib/extensions/DiagramBlock'
+import { DiagramBlock, SAVE_DIAGRAM_EVENT, diagramTypes, type DiagramData, type DiagramType } from '../../lib/extensions/DiagramBlock'
 import { encrypt, decrypt, isEncryptedPayload } from '../../lib/crypto'
 import { useSyncStore } from '../../stores/syncStore'
 import { useNotesStore } from '../../stores/notesStore'
@@ -48,6 +48,43 @@ function ToolbarBtn({ editor, active, onClick, title, children }: Readonly<{
     >
       {children}
     </button>
+  )
+}
+
+function DiagramInsertDropdown({ editor }: { editor: Editor }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const insert = (type: DiagramType) => {
+    ;(editor.commands as unknown as { insertDiagram: (type: DiagramType) => boolean }).insertDiagram(type)
+    setOpen(false)
+  }
+
+  return (
+    <div ref={ref} className={s.dropdownWrap} style={{ display: 'inline-flex' }}>
+      <button
+        className={s.toolbarBtn}
+        onMouseDown={(e) => { e.preventDefault(); setOpen((o) => !o) }}
+        title="Insert diagram"
+        tabIndex={-1}
+      >
+        <GitFork size={14} />
+      </button>
+      {open && (
+        <div className={s.dropdownMenu} style={{ left: 0, right: 'auto', minWidth: 220 }}>
+          {diagramTypes.map((dt) => (
+            <button
+              key={dt.type}
+              className={s.dropdownItem}
+              onMouseDown={(e) => { e.preventDefault(); insert(dt.type) }}
+            >
+              <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{dt.label}</span>
+              <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>{dt.description}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -97,7 +134,7 @@ function EditorToolbar({ editor }: Readonly<{ editor: Editor | null }>) {
 
       <span className={s.toolbarSep} />
 
-      {tb(false, () => (editor.commands as unknown as { insertDiagram: (label?: string) => boolean }).insertDiagram(), 'Insert diagram', <GitFork size={14} />)}
+      <DiagramInsertDropdown editor={editor} />
     </div>
   )
 }
