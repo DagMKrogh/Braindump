@@ -3,6 +3,110 @@ import { Handle, Position, type NodeProps, NodeResizer } from 'reactflow'
 import type { DiagramType } from '../../lib/extensions/DiagramBlock'
 import ds from '../../styles/diagram.module.css'
 
+// ── Helper: standard 4-handle node wrapper ───────────────────────────────────
+
+function FourHandles() {
+  return (
+    <>
+      <Handle type="target" position={Position.Top} className={ds.handle} />
+      <Handle type="target" position={Position.Left} id="left-in" className={ds.handle} />
+      <Handle type="source" position={Position.Bottom} className={ds.handle} />
+      <Handle type="source" position={Position.Right} id="right-out" className={ds.handle} />
+    </>
+  )
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  BASIC SHAPES
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ── Circle ───────────────────────────────────────────────────────────────────
+
+export const CircleNode = memo(({ data, selected }: NodeProps) => (
+  <div className={`${ds.customNode} ${ds.circleNode}`}>
+    <NodeResizer isVisible={selected ?? false} minWidth={60} minHeight={60} />
+    <FourHandles />
+    <div className={ds.customNodeLabel}>{(data as { label: string }).label}</div>
+  </div>
+))
+CircleNode.displayName = 'CircleNode'
+
+// ── Cylinder (database / storage) ────────────────────────────────────────────
+
+export const CylinderNode = memo(({ data, selected }: NodeProps) => (
+  <div className={`${ds.customNode} ${ds.cylinderNode}`}>
+    <NodeResizer isVisible={selected ?? false} minWidth={80} minHeight={60} />
+    <FourHandles />
+    <div className={ds.cylinderBody}>
+      <div className={ds.customNodeLabel}>{(data as { label: string }).label}</div>
+    </div>
+  </div>
+))
+CylinderNode.displayName = 'CylinderNode'
+
+// ── Hexagon ──────────────────────────────────────────────────────────────────
+
+export const HexagonNode = memo(({ data, selected }: NodeProps) => (
+  <div className={`${ds.customNode} ${ds.hexagonNode}`}>
+    <NodeResizer isVisible={selected ?? false} minWidth={100} minHeight={50} />
+    <FourHandles />
+    <div className={ds.hexagonInner}>
+      <div className={ds.customNodeLabel}>{(data as { label: string }).label}</div>
+    </div>
+  </div>
+))
+HexagonNode.displayName = 'HexagonNode'
+
+// ── Parallelogram (I/O) ─────────────────────────────────────────────────────
+
+export const ParallelogramNode = memo(({ data, selected }: NodeProps) => (
+  <div className={`${ds.customNode} ${ds.parallelogramNode}`}>
+    <NodeResizer isVisible={selected ?? false} minWidth={100} minHeight={40} />
+    <FourHandles />
+    <div className={ds.customNodeLabel}>{(data as { label: string }).label}</div>
+  </div>
+))
+ParallelogramNode.displayName = 'ParallelogramNode'
+
+// ── Text label (borderless annotation) ───────────────────────────────────────
+
+export const TextLabelNode = memo(({ data, selected }: NodeProps) => (
+  <div className={`${ds.customNode} ${ds.textLabelNode}`}>
+    <NodeResizer isVisible={selected ?? false} minWidth={40} minHeight={20} />
+    <Handle type="target" position={Position.Top} className={ds.handle} style={{ opacity: 0 }} />
+    <Handle type="source" position={Position.Bottom} className={ds.handle} style={{ opacity: 0 }} />
+    <div className={ds.customNodeLabel}>{(data as { label: string }).label}</div>
+  </div>
+))
+TextLabelNode.displayName = 'TextLabelNode'
+
+// ── Sticky note (annotation with folded corner) ─────────────────────────────
+
+export const StickyNoteNode = memo(({ data, selected }: NodeProps) => (
+  <div className={`${ds.customNode} ${ds.stickyNoteNode}`}>
+    <NodeResizer isVisible={selected ?? false} minWidth={100} minHeight={60} />
+    <Handle type="target" position={Position.Top} className={ds.handle} />
+    <Handle type="source" position={Position.Bottom} className={ds.handle} />
+    <div className={ds.stickyNoteFold} />
+    <div className={ds.stickyNoteText}>{(data as { label: string }).label}</div>
+  </div>
+))
+StickyNoteNode.displayName = 'StickyNoteNode'
+
+// ── Anchor (tiny dot for creating standalone lines / arrows) ─────────────────
+
+export const AnchorNode = memo(({ data, selected }: NodeProps) => (
+  <div className={`${ds.customNode} ${ds.anchorNode}`} title={(data as { label: string }).label}>
+    <NodeResizer isVisible={selected ?? false} minWidth={8} minHeight={8} />
+    <FourHandles />
+  </div>
+))
+AnchorNode.displayName = 'AnchorNode'
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  FLOW NODES
+// ═════════════════════════════════════════════════════════════════════════════
+
 // ── Input node (start / trigger) ─────────────────────────────────────────────
 
 export const InputNode = memo(({ data, selected }: NodeProps) => (
@@ -40,7 +144,9 @@ export const DecisionNode = memo(({ data, selected }: NodeProps) => (
 ))
 DecisionNode.displayName = 'DecisionNode'
 
-// ── Group / container node ───────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+//  CONTAINERS
+// ═════════════════════════════════════════════════════════════════════════════
 
 export const GroupNode = memo(({ data, selected }: NodeProps) => (
   <div className={`${ds.customNode} ${ds.groupNode}`}>
@@ -50,13 +156,11 @@ export const GroupNode = memo(({ data, selected }: NodeProps) => (
 ))
 GroupNode.displayName = 'GroupNode'
 
-// ── Class node (UML class with properties + methods) ─────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+//  SPECIALIZED (UML / ER / Sequence)
+// ═════════════════════════════════════════════════════════════════════════════
 
-interface ClassData {
-  label: string
-  properties?: string[]
-  methods?: string[]
-}
+interface ClassData { label: string; properties?: string[]; methods?: string[] }
 
 export const ClassNode = memo(({ data, selected }: NodeProps) => {
   const d = data as ClassData
@@ -67,16 +171,12 @@ export const ClassNode = memo(({ data, selected }: NodeProps) => {
       <div className={ds.classHeader}>{d.label}</div>
       {d.properties && d.properties.length > 0 && (
         <div className={ds.classSection}>
-          {d.properties.map((p, i) => (
-            <div key={i} className={ds.classMember}>{p}</div>
-          ))}
+          {d.properties.map((p, i) => <div key={i} className={ds.classMember}>{p}</div>)}
         </div>
       )}
       {d.methods && d.methods.length > 0 && (
         <div className={ds.classSection}>
-          {d.methods.map((m, i) => (
-            <div key={i} className={ds.classMember}>{m}</div>
-          ))}
+          {d.methods.map((m, i) => <div key={i} className={ds.classMember}>{m}</div>)}
         </div>
       )}
       <Handle type="source" position={Position.Bottom} className={ds.handle} />
@@ -85,12 +185,7 @@ export const ClassNode = memo(({ data, selected }: NodeProps) => {
 })
 ClassNode.displayName = 'ClassNode'
 
-// ── Entity node (ER diagram entity with attributes) ──────────────────────────
-
-interface EntityData {
-  label: string
-  attributes?: string[]
-}
+interface EntityData { label: string; attributes?: string[] }
 
 export const EntityNode = memo(({ data, selected }: NodeProps) => {
   const d = data as EntityData
@@ -120,8 +215,6 @@ export const EntityNode = memo(({ data, selected }: NodeProps) => {
 })
 EntityNode.displayName = 'EntityNode'
 
-// ── Actor node (sequence diagram participant) ────────────────────────────────
-
 export const ActorNode = memo(({ data, selected }: NodeProps) => (
   <div className={`${ds.customNode} ${ds.actorNode}`}>
     <NodeResizer isVisible={selected ?? false} minWidth={80} minHeight={40} />
@@ -134,7 +227,9 @@ export const ActorNode = memo(({ data, selected }: NodeProps) => (
 ))
 ActorNode.displayName = 'ActorNode'
 
-// ── Node type registry for React Flow ────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+//  REGISTRY
+// ═════════════════════════════════════════════════════════════════════════════
 
 export const customNodeTypes = {
   input: InputNode,
@@ -144,9 +239,18 @@ export const customNodeTypes = {
   classNode: ClassNode,
   entityNode: EntityNode,
   actorNode: ActorNode,
+  circle: CircleNode,
+  cylinder: CylinderNode,
+  hexagon: HexagonNode,
+  parallelogram: ParallelogramNode,
+  textLabel: TextLabelNode,
+  stickyNote: StickyNoteNode,
+  anchor: AnchorNode,
 }
 
-export type DiagramNodeType = 'default' | 'input' | 'output' | 'decision' | 'group' | 'classNode' | 'entityNode' | 'actorNode'
+export type DiagramNodeType = keyof typeof customNodeTypes | 'default'
+
+// ── Categorized node type options ────────────────────────────────────────────
 
 interface NodeTypeOption {
   type: DiagramNodeType
@@ -154,61 +258,126 @@ interface NodeTypeOption {
   description: string
 }
 
-const generalNodeTypes: NodeTypeOption[] = [
-  { type: 'default',    label: 'Default',    description: 'Standard process node' },
-  { type: 'input',      label: 'Input',      description: 'Start / trigger point' },
-  { type: 'output',     label: 'Output',     description: 'End / result point' },
-  { type: 'decision',   label: 'Decision',   description: 'Conditional branching' },
-  { type: 'group',      label: 'Group',      description: 'Container area for grouping' },
-  { type: 'classNode',  label: 'Class',      description: 'UML class with properties/methods' },
-  { type: 'entityNode', label: 'Entity',     description: 'ER entity with attributes' },
-  { type: 'actorNode',  label: 'Actor',      description: 'Participant / actor' },
+export interface NodeTypeSection {
+  heading: string
+  items: NodeTypeOption[]
+}
+
+const shapesSection: NodeTypeSection = {
+  heading: 'Shapes',
+  items: [
+    { type: 'default',       label: 'Rectangle',     description: 'Standard box node' },
+    { type: 'circle',        label: 'Circle',         description: 'Circle / state node' },
+    { type: 'decision',      label: 'Diamond',        description: 'Diamond / decision' },
+    { type: 'hexagon',       label: 'Hexagon',        description: 'Preparation / process' },
+    { type: 'parallelogram', label: 'Parallelogram',  description: 'Input / output data' },
+    { type: 'cylinder',      label: 'Cylinder',       description: 'Database / storage' },
+  ],
+}
+
+const flowSection: NodeTypeSection = {
+  heading: 'Flow',
+  items: [
+    { type: 'input',    label: 'Start',    description: 'Start / trigger point' },
+    { type: 'output',   label: 'End',      description: 'End / result point' },
+  ],
+}
+
+const annotationsSection: NodeTypeSection = {
+  heading: 'Annotations',
+  items: [
+    { type: 'textLabel',  label: 'Text Label',  description: 'Borderless text annotation' },
+    { type: 'stickyNote', label: 'Note',         description: 'Sticky note with comment' },
+    { type: 'anchor',     label: 'Anchor',       description: 'Dot for standalone lines / arrows' },
+  ],
+}
+
+const containersSection: NodeTypeSection = {
+  heading: 'Containers',
+  items: [
+    { type: 'group', label: 'Group', description: 'Container area for grouping nodes' },
+  ],
+}
+
+const specializedSection: NodeTypeSection = {
+  heading: 'Specialized',
+  items: [
+    { type: 'classNode',  label: 'Class',  description: 'UML class with properties/methods' },
+    { type: 'entityNode', label: 'Entity', description: 'ER entity with attributes' },
+    { type: 'actorNode',  label: 'Actor',  description: 'Participant / actor' },
+  ],
+}
+
+// ── Per-diagram-type section lists ───────────────────────────────────────────
+
+const generalSections: NodeTypeSection[] = [
+  shapesSection,
+  flowSection,
+  annotationsSection,
+  containersSection,
+  specializedSection,
 ]
 
-const flowchartNodeTypes: NodeTypeOption[] = [
-  { type: 'input',    label: 'Start',    description: 'Start point' },
-  { type: 'default',  label: 'Process',  description: 'Process step' },
-  { type: 'decision', label: 'Decision', description: 'Conditional branching' },
-  { type: 'output',   label: 'End',      description: 'End point' },
-  { type: 'group',    label: 'Group',    description: 'Container area' },
+const flowchartSections: NodeTypeSection[] = [
+  flowSection,
+  shapesSection,
+  annotationsSection,
+  containersSection,
 ]
 
-const classNodeTypes: NodeTypeOption[] = [
-  { type: 'classNode', label: 'Class',     description: 'Class with properties and methods' },
-  { type: 'group',     label: 'Package',   description: 'Package / namespace container' },
-  { type: 'default',   label: 'Note',      description: 'Annotation note' },
+const classSections: NodeTypeSection[] = [
+  { heading: 'Class Diagram', items: [
+    { type: 'classNode', label: 'Class',   description: 'Class with properties and methods' },
+    { type: 'group',     label: 'Package', description: 'Package / namespace container' },
+  ]},
+  shapesSection,
+  annotationsSection,
 ]
 
-const erNodeTypes: NodeTypeOption[] = [
-  { type: 'entityNode', label: 'Entity',   description: 'Table / entity with attributes' },
-  { type: 'group',      label: 'Schema',   description: 'Schema / namespace container' },
-  { type: 'default',    label: 'Note',     description: 'Annotation note' },
+const erSections: NodeTypeSection[] = [
+  { heading: 'ER Diagram', items: [
+    { type: 'entityNode', label: 'Entity', description: 'Table / entity with attributes' },
+    { type: 'group',      label: 'Schema', description: 'Schema / namespace container' },
+  ]},
+  shapesSection,
+  annotationsSection,
 ]
 
-const sequenceNodeTypes: NodeTypeOption[] = [
-  { type: 'actorNode', label: 'Actor',     description: 'Participant / service' },
-  { type: 'default',   label: 'Message',   description: 'Interaction / message' },
-  { type: 'group',     label: 'Fragment',  description: 'Loop / alt fragment' },
+const sequenceSections: NodeTypeSection[] = [
+  { heading: 'Sequence', items: [
+    { type: 'actorNode', label: 'Actor',   description: 'Participant / service' },
+    { type: 'default',   label: 'Message', description: 'Interaction / message' },
+    { type: 'group',     label: 'Fragment', description: 'Loop / alt fragment' },
+  ]},
+  shapesSection,
+  annotationsSection,
 ]
 
-const architectureNodeTypes: NodeTypeOption[] = [
-  { type: 'default',  label: 'Service',    description: 'Service / component' },
-  { type: 'group',    label: 'Layer',      description: 'Layer / boundary' },
-  { type: 'input',    label: 'Client',     description: 'External client / entry' },
-  { type: 'output',   label: 'External',   description: 'External system / output' },
+const architectureSections: NodeTypeSection[] = [
+  { heading: 'Architecture', items: [
+    { type: 'default',   label: 'Service',  description: 'Service / component' },
+    { type: 'cylinder',  label: 'Database', description: 'Database / data store' },
+    { type: 'group',     label: 'Layer',    description: 'Layer / boundary' },
+    { type: 'input',     label: 'Client',   description: 'External client / entry' },
+    { type: 'output',    label: 'External', description: 'External system / output' },
+  ]},
+  shapesSection,
+  annotationsSection,
 ]
 
-export function getNodeTypesForDiagram(diagramType: DiagramType): NodeTypeOption[] {
+export function getNodeSectionsForDiagram(diagramType: DiagramType): NodeTypeSection[] {
   switch (diagramType) {
-    case 'flowchart':    return flowchartNodeTypes
-    case 'class':        return classNodeTypes
-    case 'er':           return erNodeTypes
-    case 'sequence':     return sequenceNodeTypes
-    case 'architecture': return architectureNodeTypes
+    case 'flowchart':    return flowchartSections
+    case 'class':        return classSections
+    case 'er':           return erSections
+    case 'sequence':     return sequenceSections
+    case 'architecture': return architectureSections
     case 'general':
-    default:             return generalNodeTypes
+    default:             return generalSections
   }
 }
 
-// Keep legacy export for backwards compat
-export const nodeTypeOptions = generalNodeTypes
+// Flat list for type selector dropdown
+export function getNodeTypesForDiagram(diagramType: DiagramType): NodeTypeOption[] {
+  return getNodeSectionsForDiagram(diagramType).flatMap((s) => s.items)
+}

@@ -74,7 +74,24 @@
 .addNodeMenu {
   left: 0;
   right: auto;
-  min-width: 200px;
+  min-width: 220px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.menuSectionHeading {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  padding: 0.5rem 0.875rem 0.2rem;
+}
+
+.menuDivider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 0.25rem 0;
 }
 
 .nodeTypeLabel {
@@ -106,6 +123,143 @@
 
 .handle {
   background: var(--color-accent) !important;
+}
+
+/* ── Circle node ─────────────────────────────────────────────────────────── */
+.circleNode {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Cylinder node (database) ────────────────────────────────────────────── */
+.cylinderNode {
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cylinderBody {
+  background: var(--color-surface);
+  border: 2px solid #64748b;
+  border-radius: 4px 4px 50% 50% / 4px 4px 20px 20px;
+  padding: 1rem 0.75rem 1.2rem;
+  min-width: 80px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.cylinderBody::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -2px;
+  right: -2px;
+  height: 16px;
+  border: 2px solid #64748b;
+  border-radius: 50%;
+  background: color-mix(in srgb, #64748b 8%, var(--color-surface));
+}
+
+/* ── Hexagon node ────────────────────────────────────────────────────────── */
+.hexagonNode {
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hexagonInner {
+  background: var(--color-surface);
+  border: 2px solid #0ea5e9;
+  min-width: 100px;
+  padding: 0.5rem 1.5rem;
+  text-align: center;
+  clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Parallelogram node ──────────────────────────────────────────────────── */
+.parallelogramNode {
+  background: var(--color-surface);
+  border: 2px solid #f97316;
+  min-width: 120px;
+  padding: 0.5rem 1.5rem;
+  text-align: center;
+  transform: skewX(-10deg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.parallelogramNode .customNodeLabel {
+  transform: skewX(10deg);
+}
+
+/* ── Text label (borderless) ─────────────────────────────────────────────── */
+.textLabelNode {
+  background: transparent;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ── Sticky note ─────────────────────────────────────────────────────────── */
+.stickyNoteNode {
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-warning) 30%, var(--color-border));
+  border-radius: 2px;
+  min-width: 100px;
+  min-height: 60px;
+  padding: 0.5rem 0.6rem;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stickyNoteFold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(
+    135deg,
+    transparent 50%,
+    color-mix(in srgb, var(--color-warning) 20%, var(--color-border)) 50%
+  );
+}
+
+.stickyNoteText {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  max-width: 180px;
+}
+
+/* ── Anchor (dot for standalone lines) ───────────────────────────────────── */
+.anchorNode {
+  width: 10px;
+  height: 10px;
+  background: var(--color-text-muted);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.anchorNode:hover {
+  opacity: 1;
 }
 
 /* Input node — rounded, green-tinted */
@@ -314,7 +468,14 @@
 .diagramCanvas :global(.react-flow__node-group),
 .diagramCanvas :global(.react-flow__node-classNode),
 .diagramCanvas :global(.react-flow__node-entityNode),
-.diagramCanvas :global(.react-flow__node-actorNode) {
+.diagramCanvas :global(.react-flow__node-actorNode),
+.diagramCanvas :global(.react-flow__node-circle),
+.diagramCanvas :global(.react-flow__node-cylinder),
+.diagramCanvas :global(.react-flow__node-hexagon),
+.diagramCanvas :global(.react-flow__node-parallelogram),
+.diagramCanvas :global(.react-flow__node-textLabel),
+.diagramCanvas :global(.react-flow__node-stickyNote),
+.diagramCanvas :global(.react-flow__node-anchor) {
   background: none;
   border: none;
   border-radius: 0;

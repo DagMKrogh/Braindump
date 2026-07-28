@@ -16,7 +16,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import { X, Plus, Save, Trash2, ChevronDown } from 'lucide-react'
 import { SAVE_DIAGRAM_EVENT, type DiagramData } from '../../lib/extensions/DiagramBlock'
-import { customNodeTypes, getNodeTypesForDiagram, type DiagramNodeType } from './diagramNodes'
+import { customNodeTypes, getNodeSectionsForDiagram, getNodeTypesForDiagram, type DiagramNodeType } from './diagramNodes'
 import s from '../../styles/layout.module.css'
 import ds from '../../styles/diagram.module.css'
 
@@ -39,6 +39,7 @@ export function DiagramEditor({ diagram, onClose }: Props) {
 
   const diagramType = diagram.diagramType || 'general'
   const availableNodeTypes = getNodeTypesForDiagram(diagramType)
+  const nodeSections = getNodeSectionsForDiagram(diagramType)
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -188,15 +189,21 @@ export function DiagramEditor({ diagram, onClose }: Props) {
             </button>
             {addMenuOpen && (
               <div className={`${s.dropdownMenu} ${ds.addNodeMenu}`}>
-                {availableNodeTypes.map((opt) => (
-                  <button
-                    key={opt.type}
-                    className={s.dropdownItem}
-                    onClick={() => addNode(opt.type)}
-                  >
-                    <span className={ds.nodeTypeLabel}>{opt.label}</span>
-                    <span className={ds.nodeTypeDesc}>{opt.description}</span>
-                  </button>
+                {nodeSections.map((section, si) => (
+                  <div key={section.heading}>
+                    {si > 0 && <div className={ds.menuDivider} />}
+                    <div className={ds.menuSectionHeading}>{section.heading}</div>
+                    {section.items.map((opt) => (
+                      <button
+                        key={`${section.heading}-${opt.type}`}
+                        className={s.dropdownItem}
+                        onClick={() => addNode(opt.type)}
+                      >
+                        <span className={ds.nodeTypeLabel}>{opt.label}</span>
+                        <span className={ds.nodeTypeDesc}>{opt.description}</span>
+                      </button>
+                    ))}
+                  </div>
                 ))}
               </div>
             )}
