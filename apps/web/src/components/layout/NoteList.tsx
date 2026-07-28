@@ -50,11 +50,18 @@ export function NoteList({ notes, activeNoteId, onSelectNote, onCreateNote, onMe
     )
   }, [notes, query])
 
+  const [mergeConfirm, setMergeConfirm] = useState(false)
+
   const handleMerge = () => {
     if (selected.size < 2 || !onMergeNotes) return
-    if (!confirm(`Merge ${selected.size} notes into one? The original notes will be deleted.`)) return
+    setMergeConfirm(true)
+  }
+
+  const confirmMerge = () => {
+    if (!onMergeNotes) return
     onMergeNotes([...selected])
     clearSelection()
+    setMergeConfirm(false)
   }
 
   return (
@@ -62,22 +69,42 @@ export function NoteList({ notes, activeNoteId, onSelectNote, onCreateNote, onMe
       <div className={s.noteListHeader}>
         {selectMode ? (
           <div className={s.noteListActions}>
-            <span className={s.selectionCount}>{selected.size} selected</span>
-            <button
-              className={`${s.btn} ${s.btnPrimary} ${s.btnSmall}`}
-              onClick={handleMerge}
-              disabled={selected.size < 2}
-              title="Merge selected notes"
-            >
-              <Merge size={13} /> Merge
-            </button>
-            <button
-              className={`${s.btn} ${s.btnGhost} ${s.btnIcon}`}
-              onClick={clearSelection}
-              title="Cancel selection"
-            >
-              <X size={14} />
-            </button>
+            {mergeConfirm ? (
+              <>
+                <span className={s.selectionCount}>Delete {selected.size} notes and merge?</span>
+                <button
+                  className={`${s.btn} ${s.btnPrimary} ${s.btnSmall}`}
+                  onClick={confirmMerge}
+                >
+                  Yes, merge
+                </button>
+                <button
+                  className={`${s.btn} ${s.btnGhost} ${s.btnSmall}`}
+                  onClick={() => setMergeConfirm(false)}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <span className={s.selectionCount}>{selected.size} selected</span>
+                <button
+                  className={`${s.btn} ${s.btnPrimary} ${s.btnSmall}`}
+                  onClick={handleMerge}
+                  disabled={selected.size < 2}
+                  title="Merge selected notes"
+                >
+                  <Merge size={13} /> Merge
+                </button>
+                <button
+                  className={`${s.btn} ${s.btnGhost} ${s.btnIcon}`}
+                  onClick={clearSelection}
+                  title="Cancel selection"
+                >
+                  <X size={14} />
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div className={s.noteListActions}>
