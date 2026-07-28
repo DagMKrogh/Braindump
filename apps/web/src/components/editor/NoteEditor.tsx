@@ -6,6 +6,7 @@ import {
   Heading1, Heading2, Heading3,
   List, ListOrdered, ListChecks,
   Quote, Code2, Minus, Link as LinkIcon,
+  GitFork,
 } from 'lucide-react'
 import StarterKit from '@tiptap/starter-kit'
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
@@ -22,6 +23,7 @@ import type { LocalNote } from '@braindump/shared'
 import { getType } from '../../lib/noteTypeRegistry'
 import { downloadMarkdown } from '../../lib/markdownExport'
 import { createNoteLinkExtension, extractNoteLinks } from '../../lib/extensions/NoteLink'
+import { DiagramBlock } from '../../lib/extensions/DiagramBlock'
 import { encrypt, decrypt, isEncryptedPayload } from '../../lib/crypto'
 import { useSyncStore } from '../../stores/syncStore'
 import { useNotesStore } from '../../stores/notesStore'
@@ -92,6 +94,10 @@ function EditorToolbar({ editor }: Readonly<{ editor: Editor | null }>) {
       {tb(editor.isActive('blockquote'),  () => editor.chain().focus().toggleBlockquote().run(),  'Blockquote',    <Quote size={14} />)}
       {tb(editor.isActive('codeBlock'),   () => editor.chain().focus().toggleCodeBlock().run(),   'Code block',    <Code2 size={14} />)}
       {tb(false,                          () => editor.chain().focus().setHorizontalRule().run(), 'Divider',       <Minus size={14} />)}
+
+      <span className={s.toolbarSep} />
+
+      {tb(false, () => (editor.commands as unknown as { insertDiagram: (label?: string) => boolean }).insertDiagram(), 'Insert diagram', <GitFork size={14} />)}
     </div>
   )
 }
@@ -175,6 +181,7 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
       TableHeader,
       Link.configure({ openOnClick: false }),
       noteLinkExt,
+      DiagramBlock,
       Placeholder.configure({
         placeholder: typeDef ? `Start writing your ${typeDef.label.toLowerCase()}…` : 'Start writing…',
       }),

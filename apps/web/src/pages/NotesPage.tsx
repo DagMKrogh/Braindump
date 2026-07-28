@@ -1,13 +1,15 @@
-import { useEffect, useCallback, useMemo } from 'react'
+import { useEffect, useCallback, useMemo, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { FileText, Link2 } from 'lucide-react'
 import { NoteList } from '../components/layout/NoteList'
 import { NoteEditor } from '../components/editor/NoteEditor'
 import { MetadataPanel } from '../components/editor/MetadataPanel'
 import { TagInput } from '../components/editor/TagInput'
+import { DiagramEditor } from '../components/editor/DiagramEditor'
 import { LinkedTasksPanel } from '../components/tasks/LinkedTasksPanel'
 import { useNotes } from '../hooks/useNotes'
 import { NAVIGATE_NOTE_EVENT } from '../lib/extensions/NoteLink'
+import { EDIT_DIAGRAM_EVENT, type DiagramData } from '../lib/extensions/DiagramBlock'
 import type { LocalNote } from '@braindump/shared'
 import s from '../styles/layout.module.css'
 
@@ -49,6 +51,7 @@ export function NotesPage() {
   const [searchParams] = useSearchParams()
   const collectionFilter = searchParams.get('collection')
   const { notes, activeNote, activeNoteId, setActiveNoteId, createNote, saveNote, deleteNote } = useNotes()
+  const [editingDiagram, setEditingDiagram] = useState<DiagramData | null>(null)
 
   // Sync URL param → active note
   useEffect(() => {
@@ -69,6 +72,42 @@ export function NotesPage() {
     window.addEventListener(NAVIGATE_NOTE_EVENT, handler)
     return () => window.removeEventListener(NAVIGATE_NOTE_EVENT, handler)
   }, [handleSelectNote])
+
+  // Listen for diagram block clicks to open the diagram editor
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const data = (e as CustomEvent<DiagramData>).detail
+      setEditingDiagram(data)
+    }
+    window.addEventListener(EDIT_DIAGRAM_EVENT, handler)
+    return () => window.removeEventListener(EDIT_DIAGRAM_EVENT, handler)
+  }, [])
+
+  // Close diagram editor when switching notes
+  useEffect(() => {
+    setEditingDiagram(null)
+  }, [activeNoteId])
+
+  // Save diagram data back into the note's content by walking the ProseMirror JSON
+  const handleDiagramSave = useCallback((data: DiagramData) => {
+    if (!activeNote) return
+    const content = structuredClone(activeNote.content) as {
+      type?: string; attrs?: Record<string, unknown>; content?: unknown[]
+    }
+    function walk(node: { type?: string; attrs?: Record<string, unknown>; content?: unknown[] }) {
+      if (node.type === 'diagramBlock' && node.attrs?.diagramId === data.diagramId) {
+        node.attrs.label = data.label
+        node.attrs.nodes = data.nodes
+        node.attrs.edges = data.edges
+      }
+      if (Array.isArray(node.content)) {
+        node.content.forEach((child) => walk(child as typeof node))
+      }
+    }
+    walk(content)
+    saveNote(activeNoteId!, { content })
+    setEditingDiagram(null)
+  }, [activeNote, activeNoteId, saveNote])
 
   // Notes that link to the currently active note (backlinks)
   const backlinks = useMemo(() =>
@@ -129,6 +168,14 @@ export function NotesPage() {
             <LinkedTasksPanel noteId={activeNote.id} onNavigate={handleSelectNote} />
             {backlinks.length > 0 && (
               <BacklinksPanel notes={backlinks} onNavigate={handleSelectNote} />
+            )}
+            {editingDiagram && (
+              <DiagramEditor
+                key={editingDiagram.diagramId}
+                diagram={editingDiagram}
+                onSave={handleDiagramSave}
+                onClose={() => setEditingDiagram(null)}
+              />
             )}
           </>
         ) : (

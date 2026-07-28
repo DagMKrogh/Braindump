@@ -123,6 +123,60 @@ body {
   font-family: var(--font-sans);
 }
 
+/* ── Diagram block preview (rendered by DiagramBlock Tiptap extension) ── */
+.diagram-block-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  user-select: none;
+}
+
+.diagram-block-preview:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.diagram-block-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.diagram-block-icon {
+  color: var(--color-accent);
+  font-size: 0.85rem;
+}
+
+.diagram-block-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.diagram-block-count {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.diagram-block-hint {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.diagram-block-preview:hover .diagram-block-hint {
+  opacity: 1;
+}
+
 /* ── Syntax highlighting — One Dark palette (lowlight / hljs classes) ─── */
 .ProseMirror pre {
   position: relative;
