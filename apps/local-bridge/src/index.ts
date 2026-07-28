@@ -290,6 +290,7 @@ const server = http.createServer(async (req, res) => {
 
     const payload = {
       id: crypto.randomUUID(),
+      userId: 'local',
       type: typeof type === 'string' ? type : 'scratch',
       title,
       content,

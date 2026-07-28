@@ -129,7 +129,8 @@ export const localBridge = new LocalBridgeClient()
 
 // ── Built-in handler: note:ingest ──────────────────────────────────────────
 
-localBridge.on<LocalNote>('note:ingest', async (note) => {
+localBridge.on<LocalNote>('note:ingest', async (raw) => {
+  const note = { ...raw, userId: raw.userId || 'local' }
   await upsertNote(note)
   useNotesStore.getState().upsertNote(note)
   console.debug('[bridge] note ingested:', note.id, note.title)
@@ -137,7 +138,8 @@ localBridge.on<LocalNote>('note:ingest', async (note) => {
 
 // ── Peer sync: note created/updated in another client ─────────────────────
 
-localBridge.on<LocalNote>('note:upsert', async (note) => {
+localBridge.on<LocalNote>('note:upsert', async (raw) => {
+  const note = { ...raw, userId: raw.userId || 'local' }
   await upsertNote(note)
   useNotesStore.getState().upsertNote(note)
   console.debug('[bridge] note synced:', note.id, note.title)
