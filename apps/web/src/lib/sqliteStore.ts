@@ -74,6 +74,16 @@ async function migrate(db: Database): Promise<void> {
     )
   `)
   await db.execute(`
+    CREATE TABLE IF NOT EXISTS assets (
+      id TEXT PRIMARY KEY,
+      noteId TEXT,
+      fileName TEXT NOT NULL,
+      mimeType TEXT NOT NULL,
+      data TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    )
+  `)
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS custom_note_types (
       id TEXT PRIMARY KEY,
       userId TEXT NOT NULL,
@@ -311,4 +321,36 @@ export async function saveCustomNoteType(t: CustomNoteTypeRecord): Promise<void>
 export async function deleteCustomNoteType(id: string): Promise<void> {
   const db = await getDb()
   await db.execute('DELETE FROM custom_note_types WHERE id = $1', [id])
+}
+
+// ── Assets ────────────────────────────────────────────────────────────────
+
+export async function saveAsset(asset: { id: string; noteId: string | null; fileName: string; mimeType: string; data: string; createdAt: string }): Promise<void> {
+  const db = await getDb()
+  await db.execute(`
+    INSERT INTO assets (id, noteId, fileName, mimeType, data, createdAt)
+    VALUES ($1,$2,$3,$4,$5,$6)
+    ON CONFLICT(id) DO UPDATE SET noteId=excluded.noteId, fileName=excluded.fileName,
+      mimeType=excluded.mimeType, data=excluded.data
+  `, [asset.id, asset.noteId, asset.fileName, asset.mimeType, asset.data, asset.createdAt])
+}
+
+export async function getAssetById(id: string): Promise<{ id: string; noteId: string | null; fileName: string; mimeType: string; data: string; createdAt: string } | undefined> {
+  const db = await getDb()
+  const rows = await db.select<Record<string, unknown>[]>('SELECT * FROM assets WHERE id = $1', [id])
+  if (!rows[0]) return undefined
+  const r = rows[0]
+  return {
+    id: r['id'] as string,
+    noteId: (r['noteId'] as string | null) ?? null,
+    fileName: r['fileName'] as string,
+    mimeType: r['mimeType'] as string,
+    data: r['data'] as string,
+    createdAt: r['createdAt'] as string,
+  }
+}
+
+export async function deleteAsset(id: string): Promise<void> {
+  const db = await getDb()
+  await db.execute('DELETE FROM assets WHERE id = $1', [id])
 }

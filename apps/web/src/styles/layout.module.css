@@ -694,6 +694,18 @@
   color: var(--color-text-muted);
 }
 
+/* Asset images */
+:global(.asset-image-wrapper) {
+  margin: 0.75rem 0;
+  text-align: center;
+}
+
+:global(.asset-image-wrapper) img {
+  max-width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+
 /* Placeholder */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);

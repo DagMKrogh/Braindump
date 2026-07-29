@@ -6,7 +6,7 @@ import {
   Heading1, Heading2, Heading3,
   List, ListOrdered, ListChecks,
   Quote, Code2, Minus, Link as LinkIcon,
-  GitFork,
+  GitFork, ImagePlus,
 } from 'lucide-react'
 import StarterKit from '@tiptap/starter-kit'
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
@@ -24,6 +24,7 @@ import { getType } from '../../lib/noteTypeRegistry'
 import { downloadMarkdown } from '../../lib/markdownExport'
 import { createNoteLinkExtension, extractNoteLinks } from '../../lib/extensions/NoteLink'
 import { DiagramBlock, SAVE_DIAGRAM_EVENT, diagramTypes, type DiagramData, type DiagramType } from '../../lib/extensions/DiagramBlock'
+import { AssetImage, uploadAsset } from '../../lib/extensions/AssetImage'
 import { encrypt, decrypt, isEncryptedPayload } from '../../lib/crypto'
 import { useSyncStore } from '../../stores/syncStore'
 import { useNotesStore } from '../../stores/notesStore'
@@ -88,7 +89,40 @@ function DiagramInsertDropdown({ editor }: { editor: Editor }) {
   )
 }
 
-function EditorToolbar({ editor }: Readonly<{ editor: Editor | null }>) {
+function ImageUploadButton({ editor, noteId }: { editor: Editor; noteId: string }) {
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const assetId = await uploadAsset(file, noteId)
+    ;(editor.commands as unknown as { insertAssetImage: (attrs: { assetId: string; alt?: string }) => boolean })
+      .insertAssetImage({ assetId, alt: file.name })
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  return (
+    <>
+      <button
+        className={s.toolbarBtn}
+        onMouseDown={(e) => { e.preventDefault(); fileRef.current?.click() }}
+        title="Insert image"
+        tabIndex={-1}
+      >
+        <ImagePlus size={14} />
+      </button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => { void handleUpload(e) }}
+      />
+    </>
+  )
+}
+
+function EditorToolbar({ editor, noteId }: Readonly<{ editor: Editor | null; noteId: string }>) {
   if (!editor) return null
 
   const setLink = () => {
@@ -135,6 +169,7 @@ function EditorToolbar({ editor }: Readonly<{ editor: Editor | null }>) {
       <span className={s.toolbarSep} />
 
       <DiagramInsertDropdown editor={editor} />
+      <ImageUploadButton editor={editor} noteId={noteId} />
     </div>
   )
 }
@@ -219,6 +254,7 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
       Link.configure({ openOnClick: false }),
       noteLinkExt,
       DiagramBlock,
+      AssetImage,
       Placeholder.configure({
         placeholder: typeDef ? `Start writing your ${typeDef.label.toLowerCase()}…` : 'Start writing…',
       }),
@@ -405,7 +441,7 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
         </button>
       </div>
 
-      <EditorToolbar editor={locked ? null : editor} />
+      <EditorToolbar editor={locked ? null : editor} noteId={note.id} />
 
       {locked ? (
         <div className={s.editorBody} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

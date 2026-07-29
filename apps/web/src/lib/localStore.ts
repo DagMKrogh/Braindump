@@ -9,12 +9,22 @@ import type { CustomNoteTypeRecord } from '@braindump/shared'
 import { isTauri } from './isTauri'
 import * as sqlite from './sqliteStore'
 
+export interface LocalAsset {
+  id: string
+  noteId: string | null
+  fileName: string
+  mimeType: string
+  data: Blob
+  createdAt: string
+}
+
 class BraindumpDB extends Dexie {
   notes!: Table<LocalNote>
   collections!: Table<Collection>
   topics!: Table<Topic>
   tags!: Table<Tag>
   customNoteTypes!: Table<CustomNoteTypeRecord>
+  assets!: Table<LocalAsset>
 
   constructor() {
     super('braindump')
@@ -24,6 +34,14 @@ class BraindumpDB extends Dexie {
       topics: 'id, userId',
       tags: 'id, userId, name',
       customNoteTypes: 'id, userId',
+    })
+    this.version(2).stores({
+      notes: 'id, type, collectionId, topicId, dateRef, updatedAt, syncStatus, deletedAt',
+      collections: 'id, userId, parentId, topicId',
+      topics: 'id, userId',
+      tags: 'id, userId, name',
+      customNoteTypes: 'id, userId',
+      assets: 'id, noteId, createdAt',
     })
   }
 }
@@ -139,4 +157,40 @@ export async function saveCustomNoteType(record: CustomNoteTypeRecord): Promise<
 export async function deleteCustomNoteType(id: string): Promise<void> {
   if (isTauri()) return sqlite.deleteCustomNoteType(id)
   await db.customNoteTypes.delete(id)
+}
+
+// ── Assets ──────────────────────────────────────────────────────────────────
+
+export async function saveAsset(asset: LocalAsset): Promise<void> {
+  if (isTauri()) {
+    // Tauri: store as base64 in SQLite
+    const buf = await asset.data.arrayBuffer()
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
+    await sqlite.saveAsset({ ...asset, data: b64 })
+    return
+  }
+  await db.assets.put(asset)
+}
+
+export async function getAssetById(id: string): Promise<LocalAsset | undefined> {
+  if (isTauri()) {
+    const row = await sqlite.getAssetById(id)
+    if (!row) return undefined
+    // Convert base64 back to Blob
+    const bin = atob(row.data as unknown as string)
+    const bytes = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+    return { ...row, data: new Blob([bytes], { type: row.mimeType }) }
+  }
+  return db.assets.get(id)
+}
+
+export async function getAssetsByNoteId(noteId: string): Promise<LocalAsset[]> {
+  if (isTauri()) return sqlite.getAssetsByNoteId(noteId)
+  return db.assets.where('noteId').equals(noteId).toArray()
+}
+
+export async function deleteAsset(id: string): Promise<void> {
+  if (isTauri()) return sqlite.deleteAsset(id)
+  await db.assets.delete(id)
 }
