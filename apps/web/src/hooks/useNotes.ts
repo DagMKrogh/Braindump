@@ -4,6 +4,7 @@ import { useNotesStore } from '../stores/notesStore'
 import { getAllNotes, upsertNote, softDeleteNote, getNoteById } from '../lib/localStore'
 import { getType } from '../lib/noteTypeRegistry'
 import { localBridge } from '../lib/localBridge'
+import { todayDateRef, todayJotTitle } from '../noteTypes/dailyJot'
 
 export function useNotes() {
   const { notes, activeNoteId, setNotes, upsertNote: storeUpsert, removeNote, setActiveNoteId, setLoading } = useNotesStore()
@@ -18,14 +19,30 @@ export function useNotes() {
   }, [setNotes, setLoading])
 
   const createNote = useCallback(async (type: NoteType, collectionId?: string | null): Promise<string> => {
+    // Daily jot: one per day — reuse existing if found
+    if (type === 'daily-jot') {
+      const todayRef = todayDateRef()
+      const existing = notes.find(
+        (n) => n.type === 'daily-jot' && !n.deletedAt && n.dateRef === todayRef,
+      )
+      if (existing) {
+        setActiveNoteId(existing.id)
+        return existing.id
+      }
+    }
+
     const typeDef = getType(type)
     const now = new Date().toISOString()
     const id = crypto.randomUUID()
+    const isDailyJot = type === 'daily-jot'
+    let title = 'New Note'
+    if (isDailyJot) title = todayJotTitle()
+    else if (typeDef?.label) title = `New ${typeDef.label}`
     const note = {
       id,
       userId: 'local',
       type,
-      title: typeDef ? `New ${typeDef.label}` : 'New Note',
+      title,
       content: typeDef ? typeDef.contentTemplate() : { type: 'doc', content: [{ type: 'paragraph' }] },
       metadata: typeDef ? { ...typeDef.defaultMetadata } : {},
       tags: [],
@@ -34,7 +51,7 @@ export function useNotes() {
       linkedNoteIds: [],
       isPinned: false,
       isEncrypted: false,
-      dateRef: null,
+      dateRef: isDailyJot ? todayDateRef() : null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -46,7 +63,7 @@ export function useNotes() {
     setActiveNoteId(id)
     localBridge.send('note:upsert', note)
     return id
-  }, [storeUpsert, setActiveNoteId])
+  }, [notes, storeUpsert, setActiveNoteId])
 
   const saveNote = useCallback(async (id: string, changes: Partial<{ title: string; content: object; metadata: Record<string, unknown>; tags: string[]; linkedNoteIds: string[] }>) => {
     const existing = await getNoteById(id)

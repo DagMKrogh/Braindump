@@ -1,9 +1,12 @@
 import { useMemo } from 'react'
 import { NavLink, useNavigate, useSearchParams } from 'react-router-dom'
-import { FileText, Calendar, Search, Settings, Hash, FolderOpen, LayoutDashboard, CheckSquare } from 'lucide-react'
+import { FileText, Calendar, Search, Settings, Hash, FolderOpen, LayoutDashboard, CheckSquare, Sun } from 'lucide-react'
 import { SyncStatusBar } from './SyncStatusBar'
 import { useCollectionsStore } from '../../stores/collectionsStore'
 import { useNotesStore } from '../../stores/notesStore'
+import { todayDateRef, todayJotTitle } from '../../noteTypes/dailyJot'
+import { upsertNote } from '../../lib/localStore'
+import { getType } from '../../lib/noteTypeRegistry'
 import s from '../../styles/layout.module.css'
 
 export function Sidebar() {
@@ -12,6 +15,47 @@ export function Sidebar() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const activeCollectionId = searchParams.get('collection')
+  const storeUpsert = useNotesStore(st => st.upsertNote)
+
+  // Find or create today's daily jot
+  const todayJot = useMemo(() => {
+    const ref = todayDateRef()
+    return notes.find((n) => n.type === 'daily-jot' && !n.deletedAt && n.dateRef === ref) ?? null
+  }, [notes])
+
+  const handleTodayJot = async () => {
+    if (todayJot) {
+      navigate(`/notes/${todayJot.id}`)
+      return
+    }
+    // Create a new daily jot for today
+    const typeDef = getType('daily-jot')
+    const now = new Date().toISOString()
+    const id = crypto.randomUUID()
+    const note = {
+      id,
+      userId: 'local',
+      type: 'daily-jot',
+      title: todayJotTitle(),
+      content: typeDef ? typeDef.contentTemplate() : { type: 'doc', content: [{ type: 'paragraph' }] },
+      metadata: typeDef ? { ...typeDef.defaultMetadata } : {},
+      tags: [] as string[],
+      collectionId: null,
+      topicId: null,
+      linkedNoteIds: [] as string[],
+      isPinned: false,
+      isEncrypted: false,
+      dateRef: todayDateRef(),
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      syncStatus: 'pending' as const,
+      localOnly: true,
+    }
+    await upsertNote(note)
+    storeUpsert(note)
+    navigate(`/notes/${id}`)
+  }
 
   // Derive top tags from loaded notes (by note count, descending)
   const topTags = useMemo(() => {
@@ -38,6 +82,14 @@ export function Sidebar() {
           <LayoutDashboard size={15} />
           Home
         </NavLink>
+        <button
+          className={`${s.navItem} ${todayJot ? s.active : ''}`}
+          onClick={() => { void handleTodayJot() }}
+          style={{ color: '#f59e0b' }}
+        >
+          <Sun size={15} />
+          Today's Jot
+        </button>
         <NavLink to="/tasks" className={({ isActive }) => `${s.navItem} ${isActive ? s.active : ''}`}>
           <CheckSquare size={15} />
           Tasks
