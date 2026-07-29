@@ -6,7 +6,7 @@ import {
   Heading1, Heading2, Heading3,
   List, ListOrdered, ListChecks,
   Quote, Code2, Minus, Link as LinkIcon,
-  GitFork, ImagePlus,
+  GitFork, ImagePlus, FolderOpen,
 } from 'lucide-react'
 import StarterKit from '@tiptap/starter-kit'
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
@@ -28,6 +28,7 @@ import { AssetImage, uploadAsset } from '../../lib/extensions/AssetImage'
 import { encrypt, decrypt, isEncryptedPayload } from '../../lib/crypto'
 import { useSyncStore } from '../../stores/syncStore'
 import { useNotesStore } from '../../stores/notesStore'
+import { useCollectionsStore } from '../../stores/collectionsStore'
 import { ShareModal } from './ShareModal'
 import s from '../../styles/layout.module.css'
 
@@ -176,7 +177,7 @@ function EditorToolbar({ editor, noteId }: Readonly<{ editor: Editor | null; not
 
 interface Props {
   note: LocalNote
-  onSave: (changes: { content?: object; title?: string; linkedNoteIds?: string[] }) => void
+  onSave: (changes: { content?: object; title?: string; linkedNoteIds?: string[]; collectionId?: string | null }) => void
   onDelete: () => void
 }
 
@@ -185,10 +186,13 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
   const titleRef = useRef<HTMLInputElement>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const exportRef = useRef<HTMLDivElement>(null)
+  const collectionRef = useRef<HTMLDivElement>(null)
   const serverUrl = useSyncStore((st) => st.serverUrl)
+  const collections = useCollectionsStore((st) => st.collections)
 
   const [exportOpen, setExportOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const [collectionOpen, setCollectionOpen] = useState(false)
 
   // ── Secret note encryption state ───────────────────────────────────────
   const isSecret = note.type === 'secret'
@@ -317,17 +321,20 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
     return () => window.removeEventListener(SAVE_DIAGRAM_EVENT, handler)
   }, [editor])
 
-  // Close export dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
-    if (!exportOpen) return
+    if (!exportOpen && !collectionOpen) return
     const handler = (e: MouseEvent) => {
-      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+      if (exportOpen && exportRef.current && !exportRef.current.contains(e.target as Node)) {
         setExportOpen(false)
+      }
+      if (collectionOpen && collectionRef.current && !collectionRef.current.contains(e.target as Node)) {
+        setCollectionOpen(false)
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [exportOpen])
+  }, [exportOpen, collectionOpen])
 
   const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value
@@ -393,6 +400,41 @@ export function NoteEditor({ note, onSave, onDelete }: Props) {
           onChange={handleTitleChange}
           onKeyDown={handleTitleKeyDown}
         />
+
+        {/* Collection picker */}
+        <div ref={collectionRef} className={s.dropdownWrap}>
+          <button
+            className={`${s.btn} ${s.btnGhost}`}
+            onClick={() => setCollectionOpen((o) => !o)}
+            title="Move to collection"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+          >
+            <FolderOpen size={13} />
+            {collections.find((c) => c.id === note.collectionId)?.name ?? 'No collection'}
+            <span style={{ fontSize: '0.6rem', marginLeft: '0.1rem' }}>▾</span>
+          </button>
+          {collectionOpen && (
+            <div className={s.dropdownMenu} style={{ minWidth: 180 }}>
+              <button
+                className={s.dropdownItem}
+                style={{ color: !note.collectionId ? 'var(--color-accent)' : undefined }}
+                onClick={() => { onSave({ collectionId: null }); setCollectionOpen(false) }}
+              >
+                No collection
+              </button>
+              {collections.map((c) => (
+                <button
+                  key={c.id}
+                  className={s.dropdownItem}
+                  style={{ color: c.id === note.collectionId ? 'var(--color-accent)' : undefined }}
+                  onClick={() => { onSave({ collectionId: c.id }); setCollectionOpen(false) }}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Export dropdown */}
         <div ref={exportRef} className={s.dropdownWrap}>

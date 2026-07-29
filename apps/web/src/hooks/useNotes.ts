@@ -65,7 +65,7 @@ export function useNotes() {
     return id
   }, [notes, storeUpsert, setActiveNoteId])
 
-  const saveNote = useCallback(async (id: string, changes: Partial<{ title: string; content: object; metadata: Record<string, unknown>; tags: string[]; linkedNoteIds: string[] }>) => {
+  const saveNote = useCallback(async (id: string, changes: Partial<{ title: string; content: object; metadata: Record<string, unknown>; tags: string[]; linkedNoteIds: string[]; collectionId: string | null }>) => {
     const existing = await getNoteById(id)
     if (!existing) return
     const updated = {
