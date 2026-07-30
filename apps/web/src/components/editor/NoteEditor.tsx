@@ -38,8 +38,8 @@ const AUTOSAVE_DELAY = 800
 
 // ── Formatting toolbar ─────────────────────────────────────────────────────
 
-function ToolbarBtn({ editor, active, onClick, title, children }: Readonly<{
-  editor: Editor; active: boolean; onClick: () => void; title: string; children: React.ReactNode
+function ToolbarBtn({ active, onClick, title, children }: Readonly<{
+  editor?: Editor; active: boolean; onClick: () => void; title: string; children: React.ReactNode
 }>) {
   return (
     <button

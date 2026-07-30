@@ -35,7 +35,7 @@ export function Sidebar() {
     const note = {
       id,
       userId: 'local',
-      type: 'daily-jot',
+      type: 'daily-jot' as const,
       title: todayJotTitle(),
       content: typeDef ? typeDef.contentTemplate() : { type: 'doc', content: [{ type: 'paragraph' }] },
       metadata: typeDef ? { ...typeDef.defaultMetadata } : {},

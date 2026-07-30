@@ -186,7 +186,15 @@ export async function getAssetById(id: string): Promise<LocalAsset | undefined> 
 }
 
 export async function getAssetsByNoteId(noteId: string): Promise<LocalAsset[]> {
-  if (isTauri()) return sqlite.getAssetsByNoteId(noteId)
+  if (isTauri()) {
+    const rows = await sqlite.getAssetsByNoteId(noteId)
+    return rows.map((row) => {
+      const bin = atob(row.data)
+      const bytes = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+      return { ...row, data: new Blob([bytes], { type: row.mimeType }) }
+    })
+  }
   return db.assets.where('noteId').equals(noteId).toArray()
 }
 

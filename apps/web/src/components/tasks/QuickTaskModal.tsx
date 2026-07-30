@@ -43,7 +43,7 @@ export function QuickTaskModal({ linkedNoteId, onClose, onCreated }: Props) {
       const first = focusable[0]
       const last = focusable.at(-1)!
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus() }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
@@ -214,7 +214,7 @@ export function QuickTaskModal({ linkedNoteId, onClose, onCreated }: Props) {
                 >
                   <User size={11} />
                   {c.title}
-                  {c.metadata.org && <span className={s.assigneeOrg}>{c.metadata.org as string}</span>}
+                  {!!c.metadata.org && <span className={s.assigneeOrg}>{String(c.metadata.org)}</span>}
                 </button>
               ))}
             </div>

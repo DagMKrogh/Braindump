@@ -10,7 +10,7 @@ const PBKDF2_ITERATIONS = 310_000
 const SALT_BYTES = 16
 const IV_BYTES = 12
 
-function hexToBytes(hex: string): Uint8Array {
+function hexToBytes(hex: string): Uint8Array<ArrayBuffer> {
   const arr = new Uint8Array(hex.length / 2)
   for (let i = 0; i < arr.length; i++) {
     arr[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16)
@@ -22,7 +22,7 @@ function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+async function deriveKey(password: string, salt: Uint8Array<ArrayBuffer>): Promise<CryptoKey> {
   const enc = new TextEncoder()
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
@@ -63,7 +63,7 @@ export async function decrypt(payload: EncryptedPayload, password: string): Prom
   const iv = hexToBytes(payload.iv)
   const data = hexToBytes(payload.data)
   const key = await deriveKey(password, salt)
-  const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data)
+  const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as BufferSource }, key, data as BufferSource)
   return new TextDecoder().decode(plaintext)
 }
 

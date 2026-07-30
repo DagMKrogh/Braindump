@@ -111,7 +111,7 @@ function noteFromRow(r: Record<string, unknown>): LocalNote {
   return {
     id: r['id'] as string,
     userId: r['userId'] as string,
-    type: r['type'] as string,
+    type: r['type'] as LocalNote['type'],
     title: r['title'] as string,
     content: JSON.parse(r['content'] as string) as object,
     metadata: JSON.parse(r['metadata'] as string) as Record<string, unknown>,
@@ -348,6 +348,19 @@ export async function getAssetById(id: string): Promise<{ id: string; noteId: st
     data: r['data'] as string,
     createdAt: r['createdAt'] as string,
   }
+}
+
+export async function getAssetsByNoteId(noteId: string): Promise<{ id: string; noteId: string | null; fileName: string; mimeType: string; data: string; createdAt: string }[]> {
+  const db = await getDb()
+  const rows = await db.select<Record<string, unknown>[]>('SELECT * FROM assets WHERE noteId = $1', [noteId])
+  return rows.map((r) => ({
+    id: r['id'] as string,
+    noteId: (r['noteId'] as string | null) ?? null,
+    fileName: r['fileName'] as string,
+    mimeType: r['mimeType'] as string,
+    data: r['data'] as string,
+    createdAt: r['createdAt'] as string,
+  }))
 }
 
 export async function deleteAsset(id: string): Promise<void> {

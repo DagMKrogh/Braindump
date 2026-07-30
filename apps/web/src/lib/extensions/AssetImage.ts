@@ -144,7 +144,7 @@ export async function uploadAsset(file: File, noteId: string | null): Promise<st
     noteId,
     fileName: file.name,
     mimeType: file.type,
-    data: file instanceof Blob ? file : new Blob([file], { type: file.type }),
+    data: file as Blob,
     createdAt: new Date().toISOString(),
   }
   await saveAsset(asset)

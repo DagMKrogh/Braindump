@@ -140,9 +140,9 @@ export function LinkedTasksPanel({ noteId, onNavigate }: Props) {
             >
               {task.title || 'Untitled'}
             </button>
-            {task.metadata.assigneeName && (
+            {!!task.metadata.assigneeName && (
               <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', flexShrink: 0 }}>
-                {task.metadata.assigneeName as string}
+                {String(task.metadata.assigneeName)}
               </span>
             )}
           </div>

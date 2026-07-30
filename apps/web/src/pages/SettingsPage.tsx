@@ -76,7 +76,7 @@ function AppearanceSection() {
   )
 }
 
-interface ServerUser { id: string; name: string; email: string; avatarUrl: string | null }
+interface ServerUser { id: string; name: string; email: string; avatarUrl: string | null; createdAt?: string }
 interface AuthResponse { accessToken: string; refreshToken: string; user: ServerUser }
 type AuthPanel = 'pick' | 'login' | 'register'
 
@@ -152,7 +152,7 @@ function SyncSection() {
     setAuthError('')
     try {
       const res = await apiFetch<AuthResponse>(serverUrl, '/auth/login', { email, password })
-      setAuth({ id: res.user.id, email: res.user.email, name: res.user.name, avatarUrl: res.user.avatarUrl ?? undefined }, res.accessToken, res.refreshToken)
+      setAuth({ id: res.user.id, email: res.user.email, name: res.user.name, avatarUrl: res.user.avatarUrl ?? null, createdAt: res.user.createdAt ?? new Date().toISOString() }, res.accessToken, res.refreshToken)
       setPassword('')
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : 'Login failed')
@@ -167,7 +167,7 @@ function SyncSection() {
     setAuthError('')
     try {
       const res = await apiFetch<AuthResponse>(serverUrl, '/auth/register', { email, name, password })
-      setAuth({ id: res.user.id, email: res.user.email, name: res.user.name, avatarUrl: res.user.avatarUrl ?? undefined }, res.accessToken, res.refreshToken)
+      setAuth({ id: res.user.id, email: res.user.email, name: res.user.name, avatarUrl: res.user.avatarUrl ?? null, createdAt: res.user.createdAt ?? new Date().toISOString() }, res.accessToken, res.refreshToken)
       setPassword('')
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : 'Registration failed')

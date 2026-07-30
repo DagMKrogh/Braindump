@@ -124,12 +124,12 @@ export function createNoteLinkExtension(getNotes: () => LocalNote[]) {
               .slice(0, 8)
           },
 
-          command: ({ editor, range, props: note }: {
-            editor: typeof this.editor
+          command: ({ editor: ed, range, props: note }: {
+            editor: { chain: () => { focus: () => { deleteRange: (range: { from: number; to: number }) => { insertContent: (content: object[]) => { run: () => void } } } } }
             range: { from: number; to: number }
             props: LocalNote
           }) => {
-            editor
+            ed
               .chain()
               .focus()
               .deleteRange(range)

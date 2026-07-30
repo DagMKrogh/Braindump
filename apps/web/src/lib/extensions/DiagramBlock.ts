@@ -139,6 +139,7 @@ export const DiagramBlock = Node.create({
     }
   },
 
+  // @ts-expect-error — custom commands with non-standard signatures
   addCommands() {
     return {
       insertDiagram:

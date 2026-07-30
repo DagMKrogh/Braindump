@@ -70,12 +70,11 @@ function StatusToggle({ task, onChange }: { task: LocalNote; onChange: (t: Local
 
 function TaskRow({
   task,
-  allNotes,
   onOpen,
   onToggle,
 }: {
   task: LocalNote
-  allNotes: LocalNote[]
+  allNotes?: LocalNote[]
   onOpen: (id: string) => void
   onToggle: (t: LocalNote) => void
 }) {
@@ -248,7 +247,7 @@ export function TasksPage() {
   const [filterAssignee, setFilterAssignee] = useState<string>('all')
   const [sortKey, setSortKey] = useState<SortKey>('priority')
   const [showModal, setShowModal] = useState(false)
-  const [modalStatus, setModalStatus] = useState<Status>('open')
+  const [_modalStatus, setModalStatus] = useState<Status>('open')
   const [query, setQuery] = useState('')
 
   const tasks = useMemo(() =>
@@ -388,7 +387,7 @@ export function TasksPage() {
           className={s.sortBtn}
           onClick={() => setSortKey((k) => {
             const cycle: SortKey[] = ['priority', 'dueDate', 'updatedAt', 'title']
-            return cycle[(cycle.indexOf(k) + 1) % cycle.length]
+            return cycle[(cycle.indexOf(k) + 1) % cycle.length] ?? 'priority'
           })}
           title={`Sort: ${sortKey}`}
         >
