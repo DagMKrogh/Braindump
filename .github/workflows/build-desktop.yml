@@ -1,0 +1,48 @@
+name: Build Desktop (Windows Portable)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build shared package
+        run: pnpm build:shared
+
+      - name: Build desktop
+        run: pnpm --filter @braindump/desktop build -- --bundles nsis
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ''
+
+      - name: Upload portable exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: Braindump-Windows-Portable
+          path: apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
