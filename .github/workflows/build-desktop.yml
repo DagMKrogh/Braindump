@@ -36,7 +36,7 @@ jobs:
         run: pnpm build:shared
 
       - name: Build desktop
-        run: pnpm --filter @braindump/desktop build -- --bundles nsis
+        run: pnpm --filter @braindump/desktop tauri build --bundles nsis
         env:
           TAURI_SIGNING_PRIVATE_KEY: ''
 
